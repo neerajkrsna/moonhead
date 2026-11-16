@@ -30,7 +30,7 @@ source, compiled binaries, disk images, ISOs, VMDKs, and OVAs are not committed.
 ├── kernel/fragments/           # Minimal Linux 7.3 Kconfig fragment (BTF, BPF_LSM, EROFS, sched_ext)
 ├── profiles/                   # Declarative mmdebstrap package manifest (base.packages)
 └── scripts/                    # Zero-systemd rootfs, GPT UEFI .img, and hybrid .iso builders
-
+```
 
 ## Build the ARM64 prototype
 
