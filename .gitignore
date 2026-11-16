@@ -1,2 +1,4 @@
 /build/
 /sources/
+/coreos-pid1/target/
+/kernel/linux-7.3/

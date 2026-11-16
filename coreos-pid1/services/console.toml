@@ -1,0 +1,6 @@
+name = "console"
+exec = "/bin/bash"
+args = ["-i"]
+tty = "/dev/console"
+cgroup = "foreground"
+restart = true
