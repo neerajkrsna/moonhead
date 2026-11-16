@@ -245,7 +245,7 @@ fn push_rtattr(buf: &mut Vec<u8>, rta_type: u16, payload: &[u8]) {
     };
     push_struct(buf, &hdr);
     buf.extend_from_slice(payload);
-    while buf.len() % 4 != 0 {
+    while !buf.len().is_multiple_of(4) {
         buf.push(0);
     }
 }
