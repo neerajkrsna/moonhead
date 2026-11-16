@@ -13,10 +13,6 @@ Linux 7.3 is a stable kernel branch, not an upstream LTS branch. The kernel
 source, compiled binaries, disk images, ISOs, VMDKs, and OVAs are not committed.
 
 
-> **Warning — Experimental Software:** The current prototype is built and boot-tested in ARM64 VMs and is **not** a production-ready OS. Its image configuration enables password SSH access, configures passwordless `sudo` for `admin`, and removes the root password. Do not expose it to untrusted networks or use it for sensitive workloads.
->
-> Linux 7.3 is a stable kernel branch, not an upstream LTS branch. Kernel source, compiled binaries, disk images, ISOs, VMDKs, and OVAs are excluded from Git.
-
 ## Architecture Highlights
 
 - **Zero-`systemd` Rust PID 1 (`coreos-pid1`):** Supervises services via `epoll`/`signalfd`, isolates PID 1 filesystem state (`unshare(CLONE_FS)`), captures service output in sealed `memfd` ring buffers, and provides `service`, `journalctl`, and `netplan` CLI shims.
