@@ -46,6 +46,7 @@ rm -rf "${ROOTFS_DIR}"
 mkdir -p "${ROOTFS_DIR}"
 
 echo "[1/3] Assembling production zero-systemd rootfs via mmdebstrap (--variant=apt)..."
+# shellcheck disable=SC2016,SC2097,SC2098
 ADMIN_USER="${ADMIN_USER}" ADMIN_PASSWORD="${ADMIN_PASSWORD}" mmdebstrap \
   --variant=apt \
   --components=main,universe \
@@ -224,6 +225,7 @@ if [[ -n "${SSH_PUBKEY_FILE:-}" && -f "${SSH_PUBKEY_FILE}" ]]; then
 fi
 
 echo "[2/3] Verifying zero systemd packages in dpkg database..."
+# shellcheck disable=SC2016
 if chroot "${ROOTFS_DIR}" dpkg-query -W -f='${Package}\n' | grep -qE '^(systemd|dbus)$'; then
   echo "ERROR: systemd or dbus leaked into rootfs!" >&2
   exit 1
