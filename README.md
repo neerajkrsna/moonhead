@@ -1,4 +1,4 @@
-# Moonhead (`CORE-OS`)
+# Project Moonhead (`CORE-OS`)
 
 > **Status:** `v0.1.0-alpha` (Developer Preview) — Single-node immutable + persistent Linux 7.3 LTS runtime verified on ARM64 (macOS QEMU `hvf` & Linux `KVM`).
 
