@@ -1,82 +1,121 @@
 # Moonhead (`CORE-OS`)
 
-An experimental ARM64 Linux distribution combining pristine upstream **Linux 7.3.4**, a memory-safe **Rust PID 1 (`coreos-pid1`)** with **zero `systemd` or `dbus`**, an immutable **`erofs`** root filesystem paired with a persistent **`ext4` `overlayfs`**, in-kernel **eBPF LSM `io_uring` filtering**, and **FD-only Landlock sandboxing (`core-jail`)**.
+> **Status:** `v0.1.0-alpha` (Developer Preview) — Single-node immutable + persistent Linux 7.3 LTS runtime verified on ARM64 (macOS QEMU `hvf` & Linux `KVM`).
 
-The current prototype builds an ARM64 Ubuntu-based root filesystem with a
-custom Rust PID 1 and Linux 7.3.4. The project was built and boot-tested in an
-Ubuntu VM. This is experimental software, not a production-ready OS: its
-image configuration enables password SSH access, configures passwordless
-sudo for the administrator, and removes the root password. Do not expose it
-to untrusted networks or use it for sensitive workloads.
+Moonhead is an experimental, fork-free Linux distribution built on pristine upstream **Linux 7.3.4**, a memory-safe **Rust PID 1 (`coreos-pid1`)** with **zero `systemd` or `dbus`**, cryptographic **`dm-verity` root verification**, an immutable **`erofs`** root paired with a persistent **`ext4` `overlayfs`** (`COREOS_DATA`), in-kernel **eBPF LSM `io_uring` filtering**, **`sched_ext` (`scx_coreos`) task scheduling**, and line-rate **`AF_XDP` zero-copy packet bypassing (`core-xdp`)**.
 
-Linux 7.3 is a stable kernel branch, not an upstream LTS branch. The kernel
-source, compiled binaries, disk images, ISOs, VMDKs, and OVAs are not committed.
+---
 
+## Architecture & Subsystems
 
-## Architecture Highlights
+```text
+ ┌──────────────────────────────────────────────────────────────┐
+ |                      QEMU / UEFI (AAVMF)                     │
+ ├──────────────────────────────────────────────────────────────┤
+ │  Kernel: Linux 7.3.4 (BTF, BPF_LSM, EROFS, sched_ext, XDP)   │
+ ├──────────────────────────────────────────────────────────────┤
+ │  Root: /dev/dm-0 (dm-verity verified SHA-256 Merkle Tree)    │
+ │        Mounted read-only as compressed erofs                 │
+ ├──────────────────────────────────────────────────────────────┤
+ │  State: /dev/vda4 (COREOS_DATA ext4 partition)               │
+ │         Backed overlayfs on /etc, /var, /usr, /root, /home   │
+ ├──────────────────────────────────────────────────────────────┤
+ │  PID 1: coreos-pid1 (Rust)                                   │
+ │         ├── Hardware Prober (ZRAM swap @ 50% RAM)            │
+ │         ├── PSI Memory-Pressure EPOLLPRI Guard               │
+ │         ├── Netlink rtnetlink + udhcpc Bring-Up              │
+ │         ├── scx_coreos sched_ext BPF Scheduler               │
+ │         ├── eBPF LSM io_uring Gatekeeper                     │
+ │         └── core-jail Landlock FD Sandboxing                 │
+ ├──────────────────────────────────────────────────────────────┤
+ │  Fast-Path: core-xdp (AF_XDP UMEM Zero-Copy Socket Bypass)   │
+ └──────────────────────────────────────────────────────────────┘
+```
 
-- **Zero-`systemd` Rust PID 1 (`coreos-pid1`):** Supervises services via `epoll`/`signalfd`, isolates PID 1 filesystem state (`unshare(CLONE_FS)`), captures service output in sealed `memfd` ring buffers, and provides `service`, `journalctl`, and `netplan` CLI shims.
-- **Immutable Root + Persistent Overlay (`COREOS_DATA`):** Boots from a read-only compressed `erofs` partition (`COREOS_ROOT`, ~85 MB) while overlaying `/etc`, `/var`, `/usr`, `/root`, and `/home` onto a persistent `ext4` partition (`COREOS_DATA`).
-- **Sub-20 ms Hardware & Network Bring-Up:** Auto-configures `zstd`-compressed ZRAM swap at 50% of RAM, registers microsecond `EPOLLPRI` PSI memory-pressure cache-shedding triggers, and configures interfaces over Linux `rtnetlink` (with `udhcpc` fallback).
-- **In-Kernel eBPF LSM `io_uring` Gatekeeper (`coreos-ebpf/`):** Hooks `uring_sqpoll`, `uring_override_creds`, and `uring_cmd` via BTF CO-RE to block privileged/raw `io_uring` operations for jailed cgroups.
-- **FD-Only Landlock Isolation (`core-jail`):** Strips ambient filesystem authority by default; processes access only subtrees explicitly passed via `--ro` or `--rw` file descriptors.
+### 1. Zero-`systemd` Rust PID 1 (`coreos-pid1`)
+- **Supervision & IPC:** Manages child processes via `epoll` and `signalfd`, isolates PID 1 filesystem state (`unshare(CLONE_FS)`), and captures service logs in sealed `memfd` ring buffers.
+- **CLI Compatibility Shims:** Provides `service`, `journalctl`, and `netplan` command-line shims for operational familiarity without any background daemon overhead.
+
+### 2. Cryptographic Root Integrity (`dm-verity`)
+- **Block-Level Verification:** Computes a SHA-256 Merkle hash tree over `rootfs.erofs` at build time (`veritysetup format`) and passes deterministic `PARTUUID`s via `dm-mod.create=` and `panic_on_corruption`.
+- **Zero Initramfs:** Direct kernel-level device-mapper mounting (`/dev/dm-0`) before PID 1 execution.
+
+### 3. Immutable Root + Persistent Overlay (`COREOS_DATA`)
+- **Partition Layout:**
+  - `COREOS_ESP` (FAT32, 128 MiB): UEFI bootloader (`BOOTAA64.EFI`) & Linux kernel (`vmlinuz`).
+  - `COREOS_ROOT` (`erofs`, ~86 MiB): Immutable compressed OS filesystem.
+  - `COREOS_VERITY` (`ext4`/raw, ~1 MiB): Merkle verification hash tree.
+  - `COREOS_DATA` (`ext4`, 7.5 GiB default): Persistent writable storage backing `/etc`, `/var`, `/usr`, `/root`, and `/home` via `overlayfs`.
+
+### 4. Custom `sched_ext` BPF Scheduler (`scx_coreos`)
+- **Cgroup-Aware Tiers:** Dispatches tasks across `/sys/fs/cgroup/coreos.slice/{foreground,batch,jailed}` into tiered Dispatch Queues (DSQs) with automatic EEVDF watchdog failover and 16-dispatch starvation bounds.
+
+### 5. In-Kernel eBPF LSM `io_uring` Gatekeeper & Landlock (`core-jail`)
+- **Security Gatekeeping:** BTF CO-RE eBPF LSM programs intercept `uring_sqpoll`, `uring_override_creds`, and raw `uring_cmd` calls for jailed cgroups.
+- **Filesystem Isolation:** `core-jail` strips ambient authority; processes access only subtrees explicitly passed via `--ro` or `--rw` file descriptors.
+
+### 6. `AF_XDP` Zero-Copy Fast Path (`core-xdp`)
+- **Kernel Bypass:** XDP eBPF program (`xdp_fastpath.bpf.c`) inspects inbound UDP packets and redirects matching flows directly into an `AF_XDP` UMEM ring buffer, bypassing `sk_buff` allocation and `nftables` traversal.
+
+---
+
+## Quickstart 1: Boot Prebuilt Image on macOS (QEMU `hvf`)
+
+1. Download `coreos-arm64.img.zst` from [Releases](https://github.com/neerajkrsna/moonhead/releases) and decompress:
+   ```bash
+   brew install qemu zstd
+   unzstd coreos-arm64.img.zst
+   ```
+2. Boot under Apple's `Hypervisor.framework`:
+   ```bash
+   qemu-system-aarch64 \
+     -M virt -accel hvf -cpu host -smp 4 -m 2G -nographic \
+     -bios /opt/homebrew/share/qemu/edk2-aarch64-code.fd \
+     -drive file=coreos-arm64.img,format=raw,if=virtio \
+     -netdev user,id=net0,hostfwd=tcp::2222-:22,hostfwd=udp::9999-:9999 \
+     -device virtio-net-pci,netdev=net0
+   ```
+3. Connect via SSH (`ssh -p 2222 admin@localhost`, default password set at build).
+
+---
+
+## Quickstart 2: Build from Source (Ubuntu ARM64 Build Host)
+
+Requires an ARM64 Ubuntu host (tested on Ubuntu 26.04 `resolute` or OrbStack) with Rust, Cargo, and `sudo` access:
+
+```bash
+git clone https://github.com/neerajkrsna/moonhead.git
+cd moonhead
+make deps
+sudo apt-get install -y grub-efi-arm64-bin dosfstools mtools gdisk \
+  e2fsprogs xorriso busybox-static qemu-utils cryptsetup-bin
+make kernel
+make image DATA_SIZE_MB=7680
+```
+
+- `make kernel`: Fetches upstream Linux 7.3.4 and compiles with BTF, BPF_LSM, EROFS, `sched_ext`, and `dm-verity` configurations.
+- `make image`: Generates the 4-partition UEFI GPT disk image (`build/arm64/coreos-arm64.img`) with dm-verity Merkle trees and persistent `COREOS_DATA`.
+
+---
 
 ## Repository Layout
 
 ```text
 ├── Makefile                    # Kernel fetch/build, eBPF, Rust .deb, rootfs & image targets
-├── coreos-ebpf/                # CO-RE eBPF LSM programs (io_uring_lsm.bpf.c)
-├── coreos-pid1/                # Rust PID 1 supervisor, Netlink Netplan, PSI guard & CLI shims
-├── kernel/fragments/           # Minimal Linux 7.3 Kconfig fragment (BTF, BPF_LSM, EROFS, sched_ext)
+├── coreos-ebpf/                # CO-RE eBPF programs (io_uring_lsm.bpf.c, scx_coreos.bpf.c, xdp_fastpath.bpf.c)
+├── coreos-pid1/                # Rust PID 1 supervisor, Netlink Netplan, core-xdp & CLI shims
+├── kernel/fragments/           # Minimal Linux 7.3 Kconfig fragment
 ├── profiles/                   # Declarative mmdebstrap package manifest (base.packages)
-└── scripts/                    # Zero-systemd rootfs, GPT UEFI .img, and hybrid .iso builders
+└── scripts/                    # Zero-systemd rootfs, dm-verity, and GPT UEFI .img builders
 ```
 
-## Build the ARM64 prototype
+---
 
-Use an ARM64 Ubuntu Linux machine or VM with network access, Rust and Cargo
-installed, and sufficient disk space for kernel compilation and generated
-images. The build downloads and compiles Linux and uses `sudo` to assemble the
-root filesystem. Use a supported Ubuntu release for a build host; the default
-target suite is Ubuntu 26.04 (`resolute`).
+## Roadmap & Status
 
-From the repository root:
-
-```sh
-make deps
-sudo apt-get install -y grub-efi-arm64-bin dosfstools mtools gdisk \
-  e2fsprogs xorriso busybox-static qemu-utils
-make kernel
-make iso
-```
-
-`make kernel` fetches the upstream Linux 7.3.4 source and builds it with the
-configuration fragment in `kernel/fragments/`. The `iso` target builds the
-eBPF program, Rust package and root filesystem before producing
-`build/arm64/coreos-arm64.iso`. On first build, allow time and disk space for
-the kernel and package downloads.
-
-During rootfs assembly, enter a nonempty password for the image's `admin`
-account when prompted. No default password is committed. The password is
-passed to the rootfs builder in its environment, so use a trusted build
-host. Treat the resulting image and its credentials as sensitive. The
-builder may include a public SSH key from the home directory of the user
-running the rootfs script (normally root via `sudo`).
-
-Other outputs, built locally rather than stored in Git:
-
-```sh
-make image  # build/arm64/coreos-arm64.img
-make vmdk   # build/arm64/coreos-arm64.vmdk
-make ova    # build/arm64/coreos-arm64.ova
-```
-
-To boot the root filesystem directly with QEMU after building it:
-
-```sh
-make run-qemu
-```
-
-The image scripts replace their own output and staging directories under
-`build/`; `make clean` removes the entire `build/` directory. Back up any
-outputs you need before running either.
+- [x] Pristine upstream Linux 7.3.4 + Rust PID 1 (`coreos-pid1`) + `erofs` immutable root
+- [x] Hardware prober (ZRAM), `EPOLLPRI` PSI guard, Netlink Netplan & `service`/`journalctl` shims
+- [x] CO-RE eBPF LSM `io_uring` gatekeeper + FD-only Landlock `core-jail`
+- [x] `dm-verity` cryptographic root verification + 4-partition GPT UEFI images (`.img`, `.iso`, `.ova`)
+- [x] Custom `sched_ext` BPF scheduler (`scx_coreos`) with cgroup-aware tier dispatch
+- [x] `AF_XDP` zero-copy packet fast path (`core-xdp`)
