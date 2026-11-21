@@ -5,7 +5,7 @@ use std::process;
 use std::thread;
 use std::time::Duration;
 
-const CTL_SOCK: &str = "/run/coreos/pid1.sock";
+const CTL_SOCK: &str = "/run/moonhead/pid1.sock";
 
 fn fetch_chunk(unit: &str, offset: u64) -> Result<(u64, Vec<u8>), String> {
     let mut stream = UnixStream::connect(CTL_SOCK)

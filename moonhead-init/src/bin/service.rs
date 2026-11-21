@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
 use std::process;
 
-const CTL_SOCK: &str = "/run/coreos/pid1.sock";
+const CTL_SOCK: &str = "/run/moonhead/pid1.sock";
 
 fn send_cmd(cmd: &str) -> Result<String, String> {
     let mut stream = UnixStream::connect(CTL_SOCK)

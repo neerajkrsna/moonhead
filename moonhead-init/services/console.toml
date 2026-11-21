@@ -1,6 +1,6 @@
 name = "console"
-exec = "/bin/bash"
-args = ["-i"]
+exec = "/bin/login"
+args = ["-p"]
 tty = "/dev/console"
 cgroup = "foreground"
 restart = true

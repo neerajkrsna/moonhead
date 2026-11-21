@@ -28,7 +28,7 @@ const LANDLOCK_ACCESS_FS_REFER: u64 = 1 << 13;
 const LANDLOCK_ACCESS_FS_TRUNCATE: u64 = 1 << 14;
 const LANDLOCK_ACCESS_FS_IOCTL_DEV: u64 = 1 << 15;
 
-pub const JAILED_CGROUP_PATH: &str = "/sys/fs/cgroup/coreos.slice/jailed";
+pub const JAILED_CGROUP_PATH: &str = "/sys/fs/cgroup/moonhead.slice/jailed";
 
 #[repr(C)]
 struct LandlockRulesetAttr {

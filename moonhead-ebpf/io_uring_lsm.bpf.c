@@ -19,7 +19,7 @@ static __always_inline bool is_jailed_cgroup(void)
 }
 
 SEC("lsm/uring_sqpoll")
-int BPF_PROG(coreos_uring_sqpoll)
+int BPF_PROG(moonhead_uring_sqpoll)
 {
     if (is_jailed_cgroup())
         return -1; // -EPERM: deny kernel SQPOLL thread creation for jailed tasks
@@ -27,7 +27,7 @@ int BPF_PROG(coreos_uring_sqpoll)
 }
 
 SEC("lsm/uring_override_creds")
-int BPF_PROG(coreos_uring_override_creds, const struct cred *new_cred)
+int BPF_PROG(moonhead_uring_override_creds, const struct cred *new_cred)
 {
     if (is_jailed_cgroup())
         return -1; // -EPERM: deny credential switching inside io_uring SQEs
@@ -35,7 +35,7 @@ int BPF_PROG(coreos_uring_override_creds, const struct cred *new_cred)
 }
 
 SEC("lsm/uring_cmd")
-int BPF_PROG(coreos_uring_cmd, struct io_uring_cmd *cmd)
+int BPF_PROG(moonhead_uring_cmd, struct io_uring_cmd *cmd)
 {
     if (is_jailed_cgroup())
         return -1; // -EPERM: deny raw passthrough device commands via io_uring

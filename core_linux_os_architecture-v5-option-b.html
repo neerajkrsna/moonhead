@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CORE-OS v5.0 | Linux 7.3 LTS + Rust PID 1 + mmdebstrap OS Architecture (Option B)</title>
+<title>Moonhead OS v5.0 | Linux 7.3 LTS + Rust PID 1 + mmdebstrap OS Architecture (Option B)</title>
 <style>
   :root {
     --bg-primary: #090d16;
@@ -966,7 +966,7 @@
     <div class="brand">
       <div class="brand-logo">C7</div>
       <div>
-        <span class="brand-title">CORE-OS Architecture Specification</span>
+        <span class="brand-title">Moonhead OS Architecture Specification</span>
         <span class="brand-sub">OPTION B: LINUX 7.3 LTS + RUST PID 1 + mmdebstrap (v5.0)</span>
       </div>
     </div>
@@ -990,8 +990,8 @@
   <!-- EXECUTIVE SPECIFICATION BANNER -->
   <div class="spec-header">
     <div class="spec-meta">
-      <span>KERNEL: Custom Upstream Linux 7.3 LTS (linux-image-coreos_7.3.deb — Fork-Free)</span>
-      <span>INIT &amp; SUPERVISOR: Rust PID 1 (coreos-pid1_*.deb via cargo-deb • ~4,500 LOC)</span>
+      <span>KERNEL: Custom Upstream Linux 7.3 LTS (linux-image-moonhead_7.3.deb — Fork-Free)</span>
+      <span>INIT &amp; SUPERVISOR: Rust PID 1 (moonhead-init_*.deb via cargo-deb • ~4,500 LOC)</span>
       <span>ROOTFS BUILDER: mmdebstrap --variant=custom (~30s Build Loop in M5 Pro Linux VM)</span>
       <span>TARGETS: arm64 | x86_64 | riscv64 • Immutable erofs A/B OR Live apt/dpkg</span>
     </div>
@@ -1028,7 +1028,7 @@
     <div class="section-header">
       <div>
         <span class="section-tag">Section 00 // First Principles &amp; Problem Statement</span>
-        <h2>Why We Are Creating CORE-OS &amp; What Structural Problems It Solves</h2>
+        <h2>Why We Are Creating Moonhead OS &amp; What Structural Problems It Solves</h2>
       </div>
     </div>
 
@@ -1038,7 +1038,7 @@
           <tr>
             <th style="width: 22%;">Core Objective</th>
             <th style="width: 34%;">Structural Problem in Stock Linux Distros</th>
-            <th style="width: 44%;">CORE-OS Architectural Solution (Option B)</th>
+            <th style="width: 44%;">Moonhead OS Architectural Solution (Option B)</th>
           </tr>
         </thead>
         <tbody>
@@ -1112,7 +1112,7 @@
 
         <!-- Layer 2: Rust PID 1 & Adaptive Control -->
         <rect x="15" y="120" width="1090" height="66" rx="8" fill="#121929" stroke="#34d399" stroke-width="1.5"/>
-        <text x="32" y="141" fill="#34d399" font-size="11" font-weight="bold">LAYER 2 // RUST PID 1 SUPERVISOR (coreos-pid1_*.deb via cargo-deb • Provides: init, systemd-sysv)</text>
+        <text x="32" y="141" fill="#34d399" font-size="11" font-weight="bold">LAYER 2 // RUST PID 1 SUPERVISOR (moonhead-init_*.deb via cargo-deb • Provides: init, systemd-sysv)</text>
         <text x="32" y="159" fill="#f1f5f9" font-size="9.5">[PID 1 Capability Broker]   [PSI Pressure Watchdog (/proc/pressure)]   [Netplan YAML -> Netlink]   [A/B Slot Updater]</text>
         <text x="32" y="175" fill="#94a3b8" font-size="8.5">Isolated fs_struct • Blocks apt from ever installing systemd • Auto-calibrates ZRAM, dirty_bytes &amp; resctrl L3 at boot</text>
 
@@ -1124,7 +1124,7 @@
 
         <!-- Layer 1: Upstream Linux 7.3 LTS Kernel -->
         <rect x="15" y="210" width="1090" height="58" rx="8" fill="#121929" stroke="#38bdf8" stroke-width="1.5"/>
-        <text x="32" y="232" fill="#38bdf8" font-size="11" font-weight="bold">LAYER 1 // CUSTOM UPSTREAM LINUX 7.3 LTS KERNEL (linux-image-coreos_7.3.deb via make bindeb-pkg)</text>
+        <text x="32" y="232" fill="#38bdf8" font-size="11" font-weight="bold">LAYER 1 // CUSTOM UPSTREAM LINUX 7.3 LTS KERNEL (linux-image-moonhead_7.3.deb via make bindeb-pkg)</text>
         <text x="32" y="251" fill="#f1f5f9" font-size="9.5">MGLRU + RWF_DONTCACHE  |  sched_ext (EEVDF Fallback) + dmemcg  |  BPF io_uring Filter + AF_XDP + Zero-Copy FUSE  |  failfs + Landlock + FRED</text>
 
         <!-- Layer 0: Multi-Hardware Silicon & QEMU/EFI Boot -->
@@ -1157,7 +1157,7 @@
         <div class="arch-layer" onclick="selectLayer(2, this)">
           <div class="layer-top">
             <span class="layer-id">LAYER 2 // RUST PID 1 &amp; CONTROL</span>
-            <span class="layer-boundary">Package: coreos-pid1_0.1.0.deb (cargo-deb)</span>
+            <span class="layer-boundary">Package: moonhead-init_0.1.0.deb (cargo-deb)</span>
           </div>
           <div class="layer-title">Rust PID 1 Supervisor, Netplan/Service Shims &amp; PSI Watchdog</div>
           <p style="font-size: 0.86rem; color: var(--text-secondary);">Compiled natively with <code>cargo deb</code> (~4,500 LOC) and packaged with <code>Provides: init, systemd-sysv</code> and <code>Conflicts: systemd</code> so <code>apt</code> never pulls <code>systemd</code> in. Parses <code>/etc/netplan/*.yaml</code> into netlink calls, provides Ubuntu CLI shims, and drives microsecond <code>PSI</code> memory/IO shedding.</p>
@@ -1175,7 +1175,7 @@
         <div class="arch-layer" onclick="selectLayer(1, this)">
           <div class="layer-top">
             <span class="layer-id">LAYER 1 // LINUX 7.3 LTS KERNEL</span>
-            <span class="layer-boundary">Package: linux-image-coreos_7.3.deb (make bindeb-pkg)</span>
+            <span class="layer-boundary">Package: linux-image-moonhead_7.3.deb (make bindeb-pkg)</span>
           </div>
           <div class="layer-title">Pressure-Hardened Kernel: MGLRU, sched_ext &amp; BPF-Filtered io_uring</div>
           <p style="font-size: 0.86rem; color: var(--text-secondary);">Built directly from pristine upstream Linux 7.3 LTS source using a composable Kconfig fragment and packaged via <code>make bindeb-pkg</code>. Enables lockless Multi-Gen LRU page aging, <code>RWF_DONTCACHE</code> streaming I/O, zero-copy FUSE over <code>io_uring</code>, cgroup <code>sched_ext</code>, and in-kernel BPF LSM filters on <code>io_uring</code> SQEs and <code>AF_XDP</code>.</p>
@@ -1226,11 +1226,11 @@
         </div>
         <div class="inspector-block">
           <h4>Scrutiny Trade-Off &amp; Constraint</h4>
-          <p id="ins-tradeoff" style="color: var(--accent-amber);">Downstream Debian/Ubuntu packages occasionally declare dependencies on init-system-helpers or systemd-sysv; our coreos-pid1 .deb package cleanly satisfies these virtual packages via Provides/Conflicts metadata.</p>
+          <p id="ins-tradeoff" style="color: var(--accent-amber);">Downstream Debian/Ubuntu packages occasionally declare dependencies on init-system-helpers or systemd-sysv; our moonhead-init .deb package cleanly satisfies these virtual packages via Provides/Conflicts metadata.</p>
         </div>
         <div class="inspector-block">
           <h4>30-Second mmdebstrap Assembly Command</h4>
-          <div class="code-snippet" id="ins-code">mmdebstrap --variant=custom --arch=arm64   --include="base-files,base-passwd,bash,coreutils,dash,dpkg,apt,ca-certificates,libc-bin,util-linux,iproute2,nftables,bpftool"   --customize-hook='chroot "$1" dpkg -i /tmp/coreos-pid1_0.1.0_arm64.deb'   --customize-hook='ln -sf /sbin/coreos-pid1 "$1/sbin/init"'   noble ./rootfs-dir</div>
+          <div class="code-snippet" id="ins-code">mmdebstrap --variant=custom --arch=arm64   --include="base-files,base-passwd,bash,coreutils,dash,dpkg,apt,ca-certificates,libc-bin,util-linux,iproute2,nftables,bpftool"   --customize-hook='chroot "$1" dpkg -i /tmp/moonhead-init_0.1.0_arm64.deb'   --customize-hook='ln -sf /sbin/moonhead-init "$1/sbin/init"'   noble ./rootfs-dir</div>
         </div>
       </div>
     </div>
@@ -1259,21 +1259,21 @@
         <h3 id="pt-title">Clean, Modular Monorepo Optimized for M5 Pro VM Builds</h3>
         <p id="pt-desc">Everything lives in a single Git repository built inside an <code>arm64</code> Debian/Ubuntu VM (6 vCPUs, 8–12 GB RAM, 20 GB disk) on your MacBook Pro. Kernel builds, Rust PID 1 builds, and <code>mmdebstrap</code> profile manifests are cleanly separated so rootfs iterations take ~30 seconds.</p>
         <ul id="pt-bullets" style="padding-left: 1.2rem; color: var(--text-secondary); font-size: 0.88rem; margin-top: 0.5rem;">
-          <li style="margin-bottom: 0.35rem;"><strong><code>kernel/</code>:</strong> Upstream Linux 7.3 LTS submodule + composable <code>coreos-7.3.config</code> fragment built via <code>make bindeb-pkg</code>.</li>
-          <li style="margin-bottom: 0.35rem;"><strong><code>coreos-pid1/</code>:</strong> Rust PID 1 supervisor, PSI watchdog, Netplan YAML parser, and CLI shims packaged via <code>cargo deb</code>.</li>
+          <li style="margin-bottom: 0.35rem;"><strong><code>kernel/</code>:</strong> Upstream Linux 7.3 LTS submodule + composable <code>moonhead-7.3.config</code> fragment built via <code>make bindeb-pkg</code>.</li>
+          <li style="margin-bottom: 0.35rem;"><strong><code>moonhead-init/</code>:</strong> Rust PID 1 supervisor, PSI watchdog, Netplan YAML parser, and CLI shims packaged via <code>cargo deb</code>.</li>
           <li style="margin-bottom: 0.35rem;"><strong><code>profiles/</code>:</strong> 6 declarative <code>mmdebstrap</code> package/hook manifests (<code>db</code>, <code>cloud</code>, <code>net</code>, <code>edge</code>, <code>cicd</code>, <code>hpc</code>).</li>
         </ul>
       </div>
 
       <div class="card" style="background: var(--bg-tertiary);">
-        <h4 style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--accent-blue); text-transform: uppercase; margin-bottom: 0.4rem;" id="pt-code-label">CORE-OS Monorepo Directory Tree</h4>
-        <div class="code-snippet" id="pt-code">core-os/
+        <h4 style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--accent-blue); text-transform: uppercase; margin-bottom: 0.4rem;" id="pt-code-label">Moonhead OS Monorepo Directory Tree</h4>
+        <div class="code-snippet" id="pt-code">moonhead/
 ├── Makefile                        # One-command build: make image PROFILE=db ARCH=arm64
 ├── kernel/
 │   ├── linux-7.3/                  # Pristine upstream Linux 7.3 LTS (zero C forks)
 │   └── fragments/
-│       └── coreos-7.3.config       # MGLRU, PSI, sched_ext, BPF_LSM, FRED, Landlock
-├── coreos-pid1/
+│       └── moonhead-7.3.config       # MGLRU, PSI, sched_ext, BPF_LSM, FRED, Landlock
+├── moonhead-init/
 │   ├── Cargo.toml                  # [package.metadata.deb] Provides: init, systemd-sysv
 │   └── src/
 │       ├── main.rs                 # PID 1 reaper, fs_struct isolation, memfd rings
@@ -1281,7 +1281,7 @@
 │       ├── hw_prober.rs            # Auto-tunes ZRAM, dirty_bytes, resctrl, IRQs
 │       ├── netplan.rs              # Parses /etc/netplan/*.yaml -> Netlink
 │       └── shims.rs                # Ubuntu-familiar `service` & `journalctl` CLI
-├── coreos-ebpf/
+├── moonhead-ebpf/
 │   ├── io_uring_lsm.bpf.c          # In-kernel SQE opcode & FD gatekeeper
 │   ├── af_xdp_drop.bpf.c           # Line-rate pre-sk_buff packet filter
 │   └── scx_adaptive.bpf.c          # Cgroup-delegated sched_ext scheduler
@@ -1304,7 +1304,7 @@
         <span class="section-tag">Section 03 // Surviving Extreme Load &amp; Saturation</span>
         <h2>Interactive Resource Pressure &amp; Tail-Latency Response</h2>
       </div>
-      <span style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-amber);">Select a saturation scenario to compare Stock Linux vs. CORE-OS →</span>
+      <span style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent-amber);">Select a saturation scenario to compare Stock Linux vs. Moonhead OS →</span>
     </div>
 
     <div class="stress-controls">
@@ -1340,7 +1340,7 @@
       </div>
 
       <div class="stress-card coreos">
-        <span class="tag tag-green" style="margin-bottom: 0.5rem;">CORE-OS (LINUX 7.3 LTS + RUST PID 1 + mmdebstrap)</span>
+        <span class="tag tag-green" style="margin-bottom: 0.5rem;">Moonhead OS (LINUX 7.3 LTS + RUST PID 1 + mmdebstrap)</span>
         <h3 id="st-new-title">Lockless MGLRU + Rust PID 1 PSI Microsecond Early Shedding</h3>
         <p id="st-new-desc">Multi-Gen LRU (MGLRU) ages page tables locklessly, cutting kswapd CPU overhead by 15%–40%. Simultaneously, Pressure Stall Information (PSI) wakes the Rust PID 1 supervisor via epoll on /proc/pressure/memory in microseconds to evict low-priority caches and compress pages into ZRAM before direct reclaim blocks foreground threads.</p>
         <div class="metric-bar-wrap">
@@ -1368,7 +1368,7 @@
           <tr>
             <th style="width: 18%;">Kernel / OS Mechanism</th>
             <th style="width: 26%;">Stock Linux Distro Compromise</th>
-            <th style="width: 34%;">CORE-OS Implementation (Linux 7.3 + Rust PID 1)</th>
+            <th style="width: 34%;">Moonhead OS Implementation (Linux 7.3 + Rust PID 1)</th>
             <th style="width: 22%;">Operational Impact</th>
           </tr>
         </thead>
@@ -1502,13 +1502,13 @@ match HardwareProfile::detect() {
       <div class="uc-card selected" data-cat="data-cloud" onclick="selectUseCase(0, this)">
         <div>
           <div class="uc-top">
-            <span class="uc-num">EDITION 01 // coreos-db</span>
+            <span class="uc-num">EDITION 01 // moonhead-db</span>
             <span class="tag tag-green">FLAT P99.9 LATENCY</span>
           </div>
           <h3>Low-Latency Databases &amp; High-Throughput Storage Engines</h3>
           <div class="uc-targets">Targets: PostgreSQL • ClickHouse • ScyllaDB • RocksDB • Redis</div>
           <div class="uc-detail-row"><strong class="bad">Legacy Failure:</strong> Sequential table scans &amp; backups flood page cache, evicting hot indexes; 20% dirty writeback stalls queries for seconds.</div>
-          <div class="uc-detail-row"><strong class="good">CORE-OS Fix:</strong> LTO/PGO-compiled DB binaries injected via <code>mmdebstrap</code> hook, supervised by Rust PID 1 with <code>RWF_DONTCACHE</code> scans, <code>MGLRU</code>, microsecond <code>PSI</code> shedding &amp; BPF <code>io_uring</code>.</div>
+          <div class="uc-detail-row"><strong class="good">Moonhead OS Fix:</strong> LTO/PGO-compiled DB binaries injected via <code>mmdebstrap</code> hook, supervised by Rust PID 1 with <code>RWF_DONTCACHE</code> scans, <code>MGLRU</code>, microsecond <code>PSI</code> shedding &amp; BPF <code>io_uring</code>.</div>
         </div>
         <div class="uc-footer">
           <div class="layer-pills" style="margin-top:0;">
@@ -1524,13 +1524,13 @@ match HardwareProfile::detect() {
       <div class="uc-card" data-cat="data-cloud" onclick="selectUseCase(1, this)">
         <div>
           <div class="uc-top">
-            <span class="uc-num">EDITION 02 // coreos-cloud</span>
+            <span class="uc-num">EDITION 02 // moonhead-cloud</span>
             <span class="tag tag-blue">ZERO AMBIENT AUTH</span>
           </div>
           <h3>Multi-Tenant Cloud Hosts &amp; Untrusted Code Sandboxes</h3>
           <div class="uc-targets">Targets: Kubernetes/OCI Nodes • Serverless Runners • Untrusted Code Jails</div>
           <div class="uc-detail-row"><strong class="bad">Legacy Failure:</strong> Hardened hosts block <code>io_uring</code> via <code>seccomp</code> (hurting speed); containers suffer path races &amp; noisy-neighbor L3/VRAM contention.</div>
-          <div class="uc-detail-row"><strong class="good">CORE-OS Fix:</strong> In-kernel BPF <code>io_uring</code> gatekeeping preserves async speed safely; Rust PID 1 enforces <code>failfs</code> + <code>fchroot(2)</code> + Landlock FD-only isolation alongside <code>resctrl</code> &amp; <code>dmemcg</code>.</div>
+          <div class="uc-detail-row"><strong class="good">Moonhead OS Fix:</strong> In-kernel BPF <code>io_uring</code> gatekeeping preserves async speed safely; Rust PID 1 enforces <code>failfs</code> + <code>fchroot(2)</code> + Landlock FD-only isolation alongside <code>resctrl</code> &amp; <code>dmemcg</code>.</div>
         </div>
         <div class="uc-footer">
           <div class="layer-pills" style="margin-top:0;">
@@ -1546,13 +1546,13 @@ match HardwareProfile::detect() {
       <div class="uc-card" data-cat="net-edge" onclick="selectUseCase(2, this)">
         <div>
           <div class="uc-top">
-            <span class="uc-num">EDITION 03 // coreos-net</span>
+            <span class="uc-num">EDITION 03 // moonhead-net</span>
             <span class="tag tag-green">100GbE+ ZERO-COPY</span>
           </div>
           <h3>Line-Rate Network Appliances, Firewalls &amp; Telemetry Gateways</h3>
           <div class="uc-targets">Targets: Software Routers • DDoS Filters • SD-WAN • Envoy/HAProxy</div>
           <div class="uc-detail-row"><strong class="bad">Legacy Failure:</strong> High-PPS bursts exhaust kernel <code>sk_buff</code> memory pools and cause severe IRQ imbalances across hybrid/NUMA CPUs.</div>
-          <div class="uc-detail-row"><strong class="good">CORE-OS Fix:</strong> <code>AF_XDP</code> binds NIC DMA rings directly into userspace <code>UMEM</code> to drop bad packets at driver line rate, while <code>sched_ext</code> pins workers to NUMA-local L3 cache ways.</div>
+          <div class="uc-detail-row"><strong class="good">Moonhead OS Fix:</strong> <code>AF_XDP</code> binds NIC DMA rings directly into userspace <code>UMEM</code> to drop bad packets at driver line rate, while <code>sched_ext</code> pins workers to NUMA-local L3 cache ways.</div>
         </div>
         <div class="uc-footer">
           <div class="layer-pills" style="margin-top:0;">
@@ -1568,13 +1568,13 @@ match HardwareProfile::detect() {
       <div class="uc-card" data-cat="net-edge" onclick="selectUseCase(3, this)">
         <div>
           <div class="uc-top">
-            <span class="uc-num">EDITION 04 // coreos-edge</span>
+            <span class="uc-num">EDITION 04 // moonhead-edge</span>
             <span class="tag tag-amber">~60–75 MB IDLE RAM</span>
           </div>
           <h3>Embedded, Industrial Automation &amp; Mixed-Criticality Edge</h3>
           <div class="uc-targets">Targets: Robotics • Factory PLCs • Telecom RAN • arm64 / riscv64 SoCs</div>
           <div class="uc-detail-row"><strong class="bad">Legacy Failure:</strong> <code>systemd</code> + <code>journald</code> bloat eats scarce edge RAM; mutable updates corrupt field devices; telemetry spikes starve real-time control loops.</div>
-          <div class="uc-detail-row"><strong class="good">CORE-OS Fix:</strong> Ultra-lean <code>mmdebstrap</code> <code>erofs</code> + Rust PID 1 keeps idle RAM under 75 MB, with A/B <code>dm-verity</code> atomic rollbacks and cgroup <code>sched_ext</code> sub-schedulers isolating real-time control loops.</div>
+          <div class="uc-detail-row"><strong class="good">Moonhead OS Fix:</strong> Ultra-lean <code>mmdebstrap</code> <code>erofs</code> + Rust PID 1 keeps idle RAM under 75 MB, with A/B <code>dm-verity</code> atomic rollbacks and cgroup <code>sched_ext</code> sub-schedulers isolating real-time control loops.</div>
         </div>
         <div class="uc-footer">
           <div class="layer-pills" style="margin-top:0;">
@@ -1590,13 +1590,13 @@ match HardwareProfile::detect() {
       <div class="uc-card" data-cat="cicd-hpc" onclick="selectUseCase(4, this)">
         <div>
           <div class="uc-top">
-            <span class="uc-num">EDITION 05 // coreos-cicd</span>
+            <span class="uc-num">EDITION 05 // moonhead-cicd</span>
             <span class="tag tag-purple">ZERO-COPY FUSE</span>
           </div>
           <h3>Ephemeral CI/CD Build Farms &amp; Automated Fuzzing Runners</h3>
           <div class="uc-targets">Targets: Parallel Build Clusters • Fuzzing Rigs • Security Test Sandboxes</div>
           <div class="uc-detail-row"><strong class="bad">Legacy Failure:</strong> Persistent build agents accumulate dependency drift; container overlay/FUSE filesystems incur heavy data-copy taxes during parallel builds.</div>
-          <div class="uc-detail-row"><strong class="good">CORE-OS Fix:</strong> Sub-second EFI boot into immutable <code>erofs</code> paired with Linux 7.3 <strong>zero-copy FUSE over <code>io_uring</code></strong> and instant <code>failfs</code>/Landlock teardown per job.</div>
+          <div class="uc-detail-row"><strong class="good">Moonhead OS Fix:</strong> Sub-second EFI boot into immutable <code>erofs</code> paired with Linux 7.3 <strong>zero-copy FUSE over <code>io_uring</code></strong> and instant <code>failfs</code>/Landlock teardown per job.</div>
         </div>
         <div class="uc-footer">
           <div class="layer-pills" style="margin-top:0;">
@@ -1612,13 +1612,13 @@ match HardwareProfile::detect() {
       <div class="uc-card" data-cat="cicd-hpc" onclick="selectUseCase(5, this)">
         <div>
           <div class="uc-top">
-            <span class="uc-num">EDITION 06 // coreos-hpc</span>
+            <span class="uc-num">EDITION 06 // moonhead-hpc</span>
             <span class="tag tag-blue">LIVE apt + SDK</span>
           </div>
           <h3>High-Performance Compute Workstations &amp; Developer Systems</h3>
           <div class="uc-targets">Targets: Scientific Simulation • AI/ML Nodes • Media Rendering • Dev Workstations</div>
           <div class="uc-detail-row"><strong class="bad">Legacy Failure:</strong> Stock distros carry heavy daemon bloat; Chimera’s <code>musl</code> breaks CUDA/ROCm &amp; enterprise binaries; immutable appliances block live <code>apt install</code>.</div>
-          <div class="uc-detail-row"><strong class="good">CORE-OS Fix:</strong> Full <code>glibc</code> ABI compatibility for CUDA/ROCm, live <code>apt</code>/<code>dpkg</code> enabled out-of-the-box (with <code>systemd</code> blocked), LTO/PGO hot libraries, and <code>dmemcg</code> VRAM protection.</div>
+          <div class="uc-detail-row"><strong class="good">Moonhead OS Fix:</strong> Full <code>glibc</code> ABI compatibility for CUDA/ROCm, live <code>apt</code>/<code>dpkg</code> enabled out-of-the-box (with <code>systemd</code> blocked), LTO/PGO hot libraries, and <code>dmemcg</code> VRAM protection.</div>
         </div>
         <div class="uc-footer">
           <div class="layer-pills" style="margin-top:0;">
@@ -1636,7 +1636,7 @@ match HardwareProfile::detect() {
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.85rem;">
         <div>
           <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--accent-blue); text-transform: uppercase;">Active mmdebstrap Manifest &amp; Rust PID 1 Service Profile</span>
-          <h3 id="uc-ins-title" style="font-size: 1.18rem; margin-top: 0.2rem;">01. coreos-db — Low-Latency Databases &amp; Storage Engines</h3>
+          <h3 id="uc-ins-title" style="font-size: 1.18rem; margin-top: 0.2rem;">01. moonhead-db — Low-Latency Databases &amp; Storage Engines</h3>
         </div>
         <span class="tag tag-green" id="uc-ins-metric">BENCHMARK TARGET: Flat P99.9 Query Latency Under 98% RAM + Scan Load</span>
       </div>
@@ -1644,7 +1644,7 @@ match HardwareProfile::detect() {
         <div>
           <h4 style="font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem;">Architectural Execution Flow</h4>
           <p id="uc-ins-flow" style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
-            mmdebstrap assembles the zero-systemd base in ~25 seconds and injects LTO/PGO-compiled PostgreSQL/ClickHouse .debs alongside coreos-pid1. Storage batches traverse BPF-verified io_uring rings with RWF_DONTCACHE enabled for sequential scans, while lockless MGLRU and the Rust PSI watchdog shed non-critical buffers in microseconds before direct reclaim can stall commits.
+            mmdebstrap assembles the zero-systemd base in ~25 seconds and injects LTO/PGO-compiled PostgreSQL/ClickHouse .debs alongside moonhead-init. Storage batches traverse BPF-verified io_uring rings with RWF_DONTCACHE enabled for sequential scans, while lockless MGLRU and the Rust PSI watchdog shed non-critical buffers in microseconds before direct reclaim can stall commits.
           </p>
           <p id="uc-ins-diff" style="font-size: 0.86rem; color: var(--accent-emerald); font-family: var(--font-mono);">
             Differentiator vs. Stock Ubuntu / Debian: Eliminates systemd bloat, 20% dirty-page flush freezes, and disabled io_uring policies.
@@ -1654,10 +1654,10 @@ match HardwareProfile::detect() {
           <h4 style="font-family: var(--font-mono); font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.4rem;">mmdebstrap Profile &amp; Rust PID 1 Service Manifest</h4>
           <div class="code-snippet" id="uc-ins-code"># profiles/db.manifest
 PACKAGES="base-files,bash,coreutils,dpkg,apt,iproute2,numactl,liburing2"
-CUSTOM_DEBS="coreos-pid1_0.1.0.deb postgresql-17-lto_17.2.deb"
+CUSTOM_DEBS="moonhead-init_0.1.0.deb postgresql-17-lto_17.2.deb"
 ROOTFS_MODE="erofs_dmverity_ro"
 
-# /etc/coreos/services/postgres.toml (Supervised by Rust PID 1)
+# /etc/moonhead/services/postgres.toml (Supervised by Rust PID 1)
 [service]
 exec = "/usr/bin/postgres -D /var/lib/pgsql/data"
 io_uring_policy = "allow_block_and_local_sock"
@@ -1674,43 +1674,43 @@ resctrl_l3_cache_mask = "0x00FF"</div>
           <tr>
             <th style="width: 18%;"><code>mmdebstrap</code> Edition</th>
             <th style="width: 26%;">Primary Bottleneck on Stock Linux</th>
-            <th style="width: 32%;">CORE-OS Solution (7.3 + Rust PID 1 + mmdebstrap)</th>
+            <th style="width: 32%;">Moonhead OS Solution (7.3 + Rust PID 1 + mmdebstrap)</th>
             <th style="width: 24%;">Delivery Mode &amp; Differentiator</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><strong><code>coreos-db</code></strong><br>*(Databases &amp; Storage)*</td>
+            <td><strong><code>moonhead-db</code></strong><br>*(Databases &amp; Storage)*</td>
             <td>Page-cache eviction on scans; writeback flush stalls</td>
             <td><code>RWF_DONTCACHE</code> block I/O + <code>MGLRU</code> + Rust <code>PSI</code> watchdog</td>
             <td>Immutable <code>erofs</code> • Flat P99.9 tail latency + Ubuntu CLI</td>
           </tr>
           <tr>
-            <td><strong><code>coreos-cloud</code></strong><br>*(Cloud &amp; Sandboxes)*</td>
+            <td><strong><code>moonhead-cloud</code></strong><br>*(Cloud &amp; Sandboxes)*</td>
             <td>Disabled <code>io_uring</code>; container path/mount leaks</td>
             <td>In-kernel BPF <code>io_uring</code> filter + Rust <code>failfs</code>/<code>fchroot(2)</code></td>
             <td>Immutable <code>erofs</code> • Zero-syscall I/O + zero ambient auth</td>
           </tr>
           <tr>
-            <td><strong><code>coreos-net</code></strong><br>*(Network &amp; Edge Gateways)*</td>
+            <td><strong><code>moonhead-net</code></strong><br>*(Network &amp; Edge Gateways)*</td>
             <td>Kernel <code>sk_buff</code> allocation collapse under PPS floods</td>
             <td><code>AF_XDP</code> zero-copy DMA + <code>sched_ext</code> + <code>resctrl</code> L3 QoS</td>
             <td>Immutable <code>erofs</code> • Pre-kernel line-rate DDoS drop</td>
           </tr>
           <tr>
-            <td><strong><code>coreos-edge</code></strong><br>*(Industrial &amp; IoT SoCs)*</td>
+            <td><strong><code>moonhead-edge</code></strong><br>*(Industrial &amp; IoT SoCs)*</td>
             <td>High <code>systemd</code> RAM overhead; mutable update corruption</td>
             <td>~60–75 MB Rust PID 1 + A/B <code>dm-verity</code> + unified EFI stub</td>
             <td>Immutable A/B <code>erofs</code> • Deterministic mixed-criticality</td>
           </tr>
           <tr>
-            <td><strong><code>coreos-cicd</code></strong><br>*(CI/CD &amp; Fuzzing Farms)*</td>
+            <td><strong><code>moonhead-cicd</code></strong><br>*(CI/CD &amp; Fuzzing Farms)*</td>
             <td>FUSE/overlay copy tax; gradual runner state drift</td>
             <td>Zero-copy FUSE (<code>io_uring</code>) + immutable <code>erofs</code></td>
             <td>Ephemeral <code>erofs</code> • Sub-1s boot + zero config rot</td>
           </tr>
           <tr>
-            <td><strong><code>coreos-hpc</code></strong><br>*(HPC &amp; Workstations)*</td>
+            <td><strong><code>moonhead-hpc</code></strong><br>*(HPC &amp; Workstations)*</td>
             <td>Daemon bloat; <code>musl</code> breaks CUDA/ROCm binaries</td>
             <td>Full <code>glibc</code> ABI + live <code>apt</code>/<code>dpkg</code> + <code>dmemcg</code> VRAM QoS</td>
             <td>Live <code>apt</code>/<code>dpkg</code> • Clear-class speed + standard <code>.deb</code>s</td>
@@ -1868,7 +1868,7 @@ resctrl_l3_cache_mask = "0x00FF"</div>
           <tr>
             <td><strong>Sprints 3–4</strong><br>*(Weeks 5–8)*</td>
             <td>Rust PID 1 (<code>cargo-deb</code>) &amp; PSI Watchdog</td>
-            <td>Package <code>coreos-pid1</code> via <code>cargo deb</code> (<code>Provides: init, systemd-sysv</code>), sealed <code>memfd</code> log rings, and <code>/proc/pressure</code> epoll watchdog.</td>
+            <td>Package <code>moonhead-init</code> via <code>cargo deb</code> (<code>Provides: init, systemd-sysv</code>), sealed <code>memfd</code> log rings, and <code>/proc/pressure</code> epoll watchdog.</td>
             <td><span class="tag tag-green">MILESTONE 1</span><br>&lt;0.8s QEMU boot, &lt;75 MB idle RAM, &lt;100 ms <code>sched_ext</code> failover.</td>
           </tr>
           <tr>
@@ -1880,7 +1880,7 @@ resctrl_l3_cache_mask = "0x00FF"</div>
           <tr>
             <td><strong>Sprints 7–8</strong><br>*(Weeks 13–16)*</td>
             <td>eBPF Gatekeeper, HW Prober &amp; <code>core-jail</code></td>
-            <td>Ship <code>coreos-ebpf</code> (<code>io_uring</code> LSM filter, <code>AF_XDP</code> drop hook), Rust boot hardware prober, and <code>failfs</code> + <code>fchroot(2)</code> + Landlock isolation.</td>
+            <td>Ship <code>moonhead-ebpf</code> (<code>io_uring</code> LSM filter, <code>AF_XDP</code> drop hook), Rust boot hardware prober, and <code>failfs</code> + <code>fchroot(2)</code> + Landlock isolation.</td>
             <td><span class="tag tag-purple">MILESTONE 2</span><br>P99.9 latency &lt;1.5 ms under 98% RAM + <code>RWF_DONTCACHE</code> scan storm.</td>
           </tr>
           <tr>
@@ -1926,14 +1926,14 @@ resctrl_l3_cache_mask = "0x00FF"</div>
         <div>
           <h4 style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.45rem;">Concrete Engineering Deliverables</h4>
           <ul id="ph-deliverables" style="padding-left: 1.2rem; color: var(--text-secondary); font-size: 0.9rem;">
-            <li style="margin-bottom: 0.4rem;"><strong>Custom Upstream Linux 7.3 LTS:</strong> Built inside your M5 Pro Linux VM via <code>make bindeb-pkg</code> with composable <code>coreos-7.3.config</code> (<code>MGLRU</code>, <code>PSI</code>, <code>sched_ext</code>, <code>BPF_LSM</code>, <code>Landlock</code>, Intel <code>FRED</code>).</li>
+            <li style="margin-bottom: 0.4rem;"><strong>Custom Upstream Linux 7.3 LTS:</strong> Built inside your M5 Pro Linux VM via <code>make bindeb-pkg</code> with composable <code>moonhead-7.3.config</code> (<code>MGLRU</code>, <code>PSI</code>, <code>sched_ext</code>, <code>BPF_LSM</code>, <code>Landlock</code>, Intel <code>FRED</code>).</li>
             <li style="margin-bottom: 0.4rem;"><strong>30-Second <code>mmdebstrap</code> Pipeline:</strong> Assembles a zero-<code>systemd</code> Debian/Ubuntu-compatible FHS rootfs and packs it with <code>mkfs.erofs -zlz4hc</code>.</li>
-            <li style="margin-bottom: 0.4rem;"><strong><code>coreos-pid1</code> (<code>cargo-deb</code>):</strong> Minimal Rust PID 1 (~4,500 LOC) declaring <code>Provides: init, systemd-sysv</code>, sealed <code>memfd</code> rings, and the <code>/proc/pressure</code> watchdog.</li>
+            <li style="margin-bottom: 0.4rem;"><strong><code>moonhead-init</code> (<code>cargo-deb</code>):</strong> Minimal Rust PID 1 (~4,500 LOC) declaring <code>Provides: init, systemd-sysv</code>, sealed <code>memfd</code> rings, and the <code>/proc/pressure</code> watchdog.</li>
           </ul>
         </div>
         <div>
-          <h4 style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.45rem;">Linux 7.3 LTS Kernel Config Fragment (<code>coreos-7.3.config</code>)</h4>
-          <div class="code-snippet" id="ph-code"># kernel/fragments/coreos-7.3.config
+          <h4 style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.45rem;">Linux 7.3 LTS Kernel Config Fragment (<code>moonhead-7.3.config</code>)</h4>
+          <div class="code-snippet" id="ph-code"># kernel/fragments/moonhead-7.3.config
 CONFIG_LRU_GEN=y
 CONFIG_LRU_GEN_ENABLED=y
 CONFIG_PSI=y
@@ -1984,7 +1984,7 @@ CONFIG_CGROUP_DMEM=y</div>
       </div>
       <div class="scrutiny-item">
         <input type="checkbox" id="c6">
-        <label for="c6"><strong>Dual Delivery Mode Verification:</strong> Confirm <code>coreos-edge</code> boots read-only with <code>dm-verity</code> enabled while <code>coreos-hpc</code> allows live <code>apt update &amp;&amp; apt install</code> cleanly.</label>
+        <label for="c6"><strong>Dual Delivery Mode Verification:</strong> Confirm <code>moonhead-edge</code> boots read-only with <code>dm-verity</code> enabled while <code>moonhead-hpc</code> allows live <code>apt update &amp;&amp; apt install</code> cleanly.</label>
       </div>
       <textarea class="scrutiny-notes" placeholder="Add your M5 Pro VM setup notes, mmdebstrap package lists, or benchmark targets here..."></textarea>
     </div>
@@ -1993,7 +1993,7 @@ CONFIG_CGROUP_DMEM=y</div>
 </main>
 
 <footer>
-  CORE-OS Architectural Specification v5.0 (Option B) // Upstream Linux 7.3 LTS + Rust PID 1 + mmdebstrap (2026)
+  Moonhead OS Architectural Specification v5.0 (Option B) // Upstream Linux 7.3 LTS + Rust PID 1 + mmdebstrap (2026)
 </footer>
 
 <script>
@@ -2012,11 +2012,11 @@ CONFIG_CGROUP_DMEM=y</div>
         "Workstation/HPC images keep dpkg/apt active so standard apt install works out-of-the-box without pulling systemd.",
         "Zero daemon bloat: no snapd, no systemd-resolved, no journald, no D-Bus system bus required."
       ],
-      tradeoff: "Downstream Debian/Ubuntu packages occasionally declare dependencies on init-system-helpers or systemd-sysv; our coreos-pid1 .deb package cleanly satisfies these virtual packages via Provides/Conflicts metadata.",
+      tradeoff: "Downstream Debian/Ubuntu packages occasionally declare dependencies on init-system-helpers or systemd-sysv; our moonhead-init .deb package cleanly satisfies these virtual packages via Provides/Conflicts metadata.",
       code: `mmdebstrap --variant=custom --arch=arm64 \
   --include="base-files,base-passwd,bash,coreutils,dash,dpkg,apt,ca-certificates,libc-bin,util-linux,iproute2,nftables,bpftool" \
-  --customize-hook='chroot "$1" dpkg -i /tmp/coreos-pid1_0.1.0_arm64.deb' \
-  --customize-hook='ln -sf /sbin/coreos-pid1 "$1/sbin/init"' \
+  --customize-hook='chroot "$1" dpkg -i /tmp/moonhead-init_0.1.0_arm64.deb' \
+  --customize-hook='ln -sf /sbin/moonhead-init "$1/sbin/init"' \
   noble ./rootfs-dir`
     },
     2: {
@@ -2088,18 +2088,18 @@ $ mmdebstrap --variant=custom --arch=riscv64 trixie ./rootfs-riscv64`
       title: "Clean, Modular Monorepo Optimized for M5 Pro VM Builds",
       desc: "Everything lives in a single Git repository built inside an arm64 Debian/Ubuntu VM (6 vCPUs, 8–12 GB RAM, 20 GB disk) on your MacBook Pro. Kernel builds, Rust PID 1 builds, and mmdebstrap profile manifests are cleanly separated so rootfs iterations take ~30 seconds.",
       bullets: [
-        "<strong>kernel/:</strong> Upstream Linux 7.3 LTS submodule + composable coreos-7.3.config fragment built via make bindeb-pkg.",
-        "<strong>coreos-pid1/:</strong> Rust PID 1 supervisor, PSI watchdog, Netplan YAML parser, and CLI shims packaged via cargo deb.",
+        "<strong>kernel/:</strong> Upstream Linux 7.3 LTS submodule + composable moonhead-7.3.config fragment built via make bindeb-pkg.",
+        "<strong>moonhead-init/:</strong> Rust PID 1 supervisor, PSI watchdog, Netplan YAML parser, and CLI shims packaged via cargo deb.",
         "<strong>profiles/:</strong> 6 declarative mmdebstrap package/hook manifests (db, cloud, net, edge, cicd, hpc)."
       ],
-      label: "CORE-OS Monorepo Directory Tree",
-      code: `core-os/
+      label: "Moonhead OS Monorepo Directory Tree",
+      code: `moonhead/
 ├── Makefile                        # One-command build: make image PROFILE=db ARCH=arm64
 ├── kernel/
 │   ├── linux-7.3/                  # Pristine upstream Linux 7.3 LTS (zero C forks)
 │   └── fragments/
-│       └── coreos-7.3.config       # MGLRU, PSI, sched_ext, BPF_LSM, FRED, Landlock
-├── coreos-pid1/
+│       └── moonhead-7.3.config       # MGLRU, PSI, sched_ext, BPF_LSM, FRED, Landlock
+├── moonhead-init/
 │   ├── Cargo.toml                  # [package.metadata.deb] Provides: init, systemd-sysv
 │   └── src/
 │       ├── main.rs                 # PID 1 reaper, fs_struct isolation, memfd rings
@@ -2107,7 +2107,7 @@ $ mmdebstrap --variant=custom --arch=riscv64 trixie ./rootfs-riscv64`
 │       ├── hw_prober.rs            # Auto-tunes ZRAM, dirty_bytes, resctrl, IRQs
 │       ├── netplan.rs              # Parses /etc/netplan/*.yaml -> Netlink
 │       └── shims.rs                # Ubuntu-familiar \`service\` & \`journalctl\` CLI
-├── coreos-ebpf/
+├── moonhead-ebpf/
 │   ├── io_uring_lsm.bpf.c          # In-kernel SQE opcode & FD gatekeeper
 │   ├── af_xdp_drop.bpf.c           # Line-rate pre-sk_buff packet filter
 │   └── scx_adaptive.bpf.c          # Cgroup-delegated sched_ext scheduler
@@ -2123,15 +2123,15 @@ $ mmdebstrap --variant=custom --arch=riscv64 trixie ./rootfs-riscv64`
     {
       tag: "SYSTEMD PREVENTION (.deb METADATA)",
       title: "Permanently Blocking systemd via cargo-deb Control Metadata",
-      desc: "Even when bootstrapping with mmdebstrap --variant=custom, installing standard Debian/Ubuntu packages later via apt can pull in systemd-sysv or init-system-helpers. Declaring Provides and Conflicts in coreos-pid1's Cargo.toml blocks systemd at the dpkg dependency solver level.",
+      desc: "Even when bootstrapping with mmdebstrap --variant=custom, installing standard Debian/Ubuntu packages later via apt can pull in systemd-sysv or init-system-helpers. Declaring Provides and Conflicts in moonhead-init's Cargo.toml blocks systemd at the dpkg dependency solver level.",
       bullets: [
         "<strong>Provides: init, systemd-sysv:</strong> Satisfies any .deb package requiring an init system.",
         "<strong>Conflicts & Replaces: systemd:</strong> Forces apt to refuse any transaction that attempts to install systemd.",
         "<strong>Zero Overhead:</strong> Keeps 100% compatibility with apt-get, dpkg, and unattended-upgrades."
       ],
-      label: "coreos-pid1/Cargo.toml ([package.metadata.deb])",
+      label: "moonhead-init/Cargo.toml ([package.metadata.deb])",
       code: `[package]
-name = "coreos-pid1"
+name = "moonhead-init"
 version = "0.1.0"
 edition = "2021"
 
@@ -2142,14 +2142,14 @@ panic = "abort"
 strip = true
 
 [package.metadata.deb]
-maintainer = "CORE-OS Engineering"
+maintainer = "Moonhead OS Engineering"
 section = "admin"
 priority = "required"
 provides = "init, systemd-sysv, linux-initramfs-tool"
 conflicts = "systemd, systemd-sysv, sysvinit-core"
 replaces = "systemd-sysv"
 assets = [
-    ["target/release/coreos-pid1", "sbin/coreos-pid1", "755"],
+    ["target/release/moonhead-init", "sbin/moonhead-init", "755"],
     ["target/release/service-shim", "usr/bin/service", "755"],
     ["target/release/netplan-shim", "usr/sbin/netplan", "755"],
     ["target/release/journalctl-shim", "usr/bin/journalctl", "755"],
@@ -2158,7 +2158,7 @@ assets = [
     {
       tag: "HYBRID FAST-PATH COMPILATION",
       title: "Binary .debs for Cold Tools + LTO/PGO Compilation for Hot Workloads",
-      desc: "Rather than wasting hours recompiling bash, tar, and sed like Yocto, CORE-OS uses precompiled binary .debs for cold utilities and reserves compiler tuning (-march=native / x86-64-v3 / ARMv8.2+ + LTO/PGO) strictly for your kernel, Rust PID 1, eBPF programs, and hot workloads.",
+      desc: "Rather than wasting hours recompiling bash, tar, and sed like Yocto, Moonhead OS uses precompiled binary .debs for cold utilities and reserves compiler tuning (-march=native / x86-64-v3 / ARMv8.2+ + LTO/PGO) strictly for your kernel, Rust PID 1, eBPF programs, and hot workloads.",
       bullets: [
         "<strong>30-Second Rootfs Iteration:</strong> Cold userland packages unpack from local apt cache in seconds.",
         "<strong>Maximum Hot-Path Throughput:</strong> PostgreSQL, ClickHouse, Envoy, and Rust daemons are packaged as custom LTO/PGO .debs and injected during mmdebstrap.",
@@ -2166,7 +2166,7 @@ assets = [
       ],
       label: "Hybrid Build & Injection Pipeline",
       code: `# 1. Build Rust PID 1 & eBPF .debs (~20 seconds incremental)
-$ cargo deb --manifest-path coreos-pid1/Cargo.toml
+$ cargo deb --manifest-path moonhead-init/Cargo.toml
 
 # 2. Assemble rootfs with binary base + LTO/PGO hot-path .debs (~30 seconds)
 $ mmdebstrap --variant=custom --arch=arm64 \
@@ -2180,7 +2180,7 @@ $ mmdebstrap --variant=custom --arch=arm64 \
       title: "Packing into Read-Only dm-verity erofs & Booting in QEMU (< 1s)",
       desc: "For server, cloud, network, and edge editions, the assembled directory is compressed into a read-only erofs image with dm-verity cryptographic integrity and booted directly via Linux 7.3's PE/COFF EFI stub—no initramfs required.",
       bullets: [
-        "<strong>Zero-Initramfs Direct Mount:</strong> Kernel 7.3 mounts the virtio/NVMe erofs rootfs directly and execs /sbin/coreos-pid1.",
+        "<strong>Zero-Initramfs Direct Mount:</strong> Kernel 7.3 mounts the virtio/NVMe erofs rootfs directly and execs /sbin/moonhead-init.",
         "<strong>Cryptographic Immutability:</strong> veritysetup generates a root hash signed into the kernel command line.",
         "<strong>Live Workstation Toggle:</strong> Omit erofs packing and write directly to ext4/btrfs to keep live apt install enabled."
       ],
@@ -2195,7 +2195,7 @@ $ veritysetup format ./build/rootfs-db.erofs ./build/rootfs-db.verity
 $ qemu-system-aarch64 -M virt -cpu host -accel kvm -m 2G -smp 4 \
     -kernel ./kernel/linux-7.3/arch/arm64/boot/Image \
     -drive file=./build/rootfs-db.erofs,format=raw,if=virtio,readonly=on \
-    -append "root=/dev/vda rootfstype=erofs ro init=/sbin/coreos-pid1 console=ttyAMA0" \
+    -append "root=/dev/vda rootfstype=erofs ro init=/sbin/moonhead-init console=ttyAMA0" \
     -nographic`
     }
   ];
@@ -2288,16 +2288,16 @@ $ qemu-system-aarch64 -M virt -cpu host -accel kvm -m 2G -smp 4 \
 
   const useCaseData = [
     {
-      title: "01. coreos-db — Low-Latency Databases & Storage Engines",
+      title: "01. moonhead-db — Low-Latency Databases & Storage Engines",
       metric: "BENCHMARK TARGET: Flat P99.9 Query Latency Under 98% RAM + Scan Load",
-      flow: "mmdebstrap assembles the zero-systemd base in ~25 seconds and injects LTO/PGO-compiled PostgreSQL/ClickHouse .debs alongside coreos-pid1. Storage batches traverse BPF-verified io_uring rings with RWF_DONTCACHE enabled for sequential scans, while lockless MGLRU and the Rust PSI watchdog shed non-critical buffers in microseconds before direct reclaim can stall commits.",
+      flow: "mmdebstrap assembles the zero-systemd base in ~25 seconds and injects LTO/PGO-compiled PostgreSQL/ClickHouse .debs alongside moonhead-init. Storage batches traverse BPF-verified io_uring rings with RWF_DONTCACHE enabled for sequential scans, while lockless MGLRU and the Rust PSI watchdog shed non-critical buffers in microseconds before direct reclaim can stall commits.",
       diff: "Differentiator vs. Stock Ubuntu / Debian: Eliminates systemd bloat, 20% dirty-page flush freezes, and disabled io_uring policies.",
       code: `# profiles/db.manifest
 PACKAGES="base-files,bash,coreutils,dpkg,apt,iproute2,numactl,liburing2"
-CUSTOM_DEBS="coreos-pid1_0.1.0.deb postgresql-17-lto_17.2.deb"
+CUSTOM_DEBS="moonhead-init_0.1.0.deb postgresql-17-lto_17.2.deb"
 ROOTFS_MODE="erofs_dmverity_ro"
 
-# /etc/coreos/services/postgres.toml (Supervised by Rust PID 1)
+# /etc/moonhead/services/postgres.toml (Supervised by Rust PID 1)
 [service]
 exec = "/usr/bin/postgres -D /var/lib/pgsql/data"
 io_uring_policy = "allow_block_and_local_sock"
@@ -2305,16 +2305,16 @@ rwf_dontcache_default = true
 resctrl_l3_cache_mask = "0x00FF"`
     },
     {
-      title: "02. coreos-cloud — Multi-Tenant Cloud Hosts & Untrusted Sandboxes",
+      title: "02. moonhead-cloud — Multi-Tenant Cloud Hosts & Untrusted Sandboxes",
       metric: "BENCHMARK TARGET: Zero-Syscall I/O Speed + Strict FD-Only Containment",
       flow: "Assembled via mmdebstrap with crun and core-jail. Each tenant workload spawns via Rust PID 1 inside a failfs + fchroot(2) environment with default-deny Landlock rulesets covering directory FDs and UNIX domain sockets, while BPF LSM hooks inspect io_uring SQEs and resctrl/dmemcg isolate L3 cache and GPU VRAM.",
       diff: "Differentiator vs. Hardened Cloud Linux: Retains full io_uring throughput without disabling syscall filters or relying on fragile overlay paths.",
       code: `# profiles/cloud.manifest
 PACKAGES="base-files,bash,coreutils,dpkg,iproute2,crun,uidmap,nftables"
-CUSTOM_DEBS="coreos-pid1_0.1.0.deb coreos-ebpf_0.1.0.deb"
+CUSTOM_DEBS="moonhead-init_0.1.0.deb moonhead-ebpf_0.1.0.deb"
 ROOTFS_MODE="erofs_dmverity_ro"
 
-# /etc/coreos/sandboxes/tenant_worker.toml
+# /etc/moonhead/sandboxes/tenant_worker.toml
 [isolation]
 root_mode = "failfs_fchroot"
 allowed_dir_fds = ["/srv/tenants/t42/work:rw"]
@@ -2323,16 +2323,16 @@ io_uring_bpf_profile = "sandbox_strict_v1"
 resctrl_l3_cache_mask = "0x0F00"`
     },
     {
-      title: "03. coreos-net — Line-Rate Network Appliances & Telemetry Gateways",
+      title: "03. moonhead-net — Line-Rate Network Appliances & Telemetry Gateways",
       metric: "BENCHMARK TARGET: Line-Rate 100GbE+ Packet Drops & Sub-ms Forwarding Jitter",
       flow: "Assembled from profiles/net.manifest with bpftool, ethtool, and LTO-tuned routing/proxy daemons. NIC DMA ring buffers map directly into isolated userspace UMEM arenas via AF_XDP, dropping malformed or unauthorized packets in the XDP driver hook before sk_buff allocation while sched_ext pins workers to NUMA-local cores.",
       diff: "Differentiator vs. Standard Linux Routers: Eliminates sk_buff allocation collapse under high-PPS DDoS floods without bespoke kernel forks.",
       code: `# profiles/net.manifest
 PACKAGES="base-files,bash,coreutils,dpkg,iproute2,ethtool,bpftool,nftables"
-CUSTOM_DEBS="coreos-pid1_0.1.0.deb coreos-ebpf_0.1.0.deb"
+CUSTOM_DEBS="moonhead-init_0.1.0.deb moonhead-ebpf_0.1.0.deb"
 ROOTFS_MODE="erofs_dmverity_ro"
 
-# /etc/coreos/services/xdp_gateway.toml
+# /etc/moonhead/services/xdp_gateway.toml
 [network]
 interface = "eth0"
 mode = "af_xdp_zerocopy"
@@ -2340,44 +2340,44 @@ xdp_prefilter_bpf = "/usr/lib/bpf/ddos_acl_drop.o"
 sched_ext_policy = "scx_numa_irq_pin"`
     },
     {
-      title: "04. coreos-edge — Embedded, Industrial & Mixed-Criticality Edge",
+      title: "04. moonhead-edge — Embedded, Industrial & Mixed-Criticality Edge",
       metric: "BENCHMARK TARGET: ~60–75 MB Idle RAM + Deterministic PLC Loop Under Load",
       flow: "Cross-bootstrapped across arm64 and riscv64 using profiles/edge.manifest. Boots via unified PE/COFF EFI stub into a ~65 MB erofs image, auto-configuring ZRAM compression and isolating microsecond real-time control loops from background telemetry via cgroup sched_ext sub-schedulers.",
       diff: "Differentiator vs. Stock Ubuntu Core / Debian: Eliminates 300+ MB systemd/journald overhead while keeping Ubuntu CLI/path ergonomics.",
       code: `# profiles/edge.manifest
 PACKAGES="base-files,bash,coreutils,dpkg,iproute2,i2c-tools,can-utils"
-CUSTOM_DEBS="coreos-pid1_0.1.0.deb"
+CUSTOM_DEBS="moonhead-init_0.1.0.deb"
 ROOTFS_MODE="erofs_ab_dmverity"
 
-# /etc/coreos/profiles/edge_plc_node.toml
+# /etc/moonhead/profiles/edge_plc_node.toml
 [mixed_criticality]
 rt_control_cgroup = { sched_ext = "scx_deadline_rt", cpu_weight = 1000 }
 telemetry_cgroup  = { sched_ext = "scx_batch_ecore", memory_high = "512M" }`
     },
     {
-      title: "05. coreos-cicd — Ephemeral CI/CD Build Farms & Fuzzing Runners",
+      title: "05. moonhead-cicd — Ephemeral CI/CD Build Farms & Fuzzing Runners",
       metric: "BENCHMARK TARGET: Sub-Second Clean-Slate Boots + Zero-Copy Build Filesystems",
       flow: "Assembled with GCC/Clang/Rust toolchains baked into immutable erofs. Jobs execute inside disposable failfs + Landlock sandboxes using Linux 7.3 zero-copy FUSE over io_uring, eliminating redundant kernel-to-user page copies and guaranteeing zero runner state drift.",
       diff: "Differentiator vs. Persistent VM/Docker Runners: Zero configuration rot over 10,000+ builds and dramatically lower FUSE/overlay I/O CPU overhead.",
       code: `# profiles/cicd.manifest
 PACKAGES="base-files,bash,coreutils,dpkg,git,clang,lld,make,ninja-build"
-CUSTOM_DEBS="coreos-pid1_0.1.0.deb"
+CUSTOM_DEBS="moonhead-init_0.1.0.deb"
 ROOTFS_MODE="erofs_ephemeral_ro"
 
-# /etc/coreos/services/ci_runner.toml
+# /etc/moonhead/services/ci_runner.toml
 [ephemeral_job]
 workspace_fs = "fuse_io_uring_zerocopy"
 sandbox = "failfs_landlock_ephemeral"
 teardown_on_exit = "instant_fd_revoke"`
     },
     {
-      title: "06. coreos-hpc — HPC Workstations & Developer Systems",
+      title: "06. moonhead-hpc — HPC Workstations & Developer Systems",
       metric: "BENCHMARK TARGET: Full glibc/CUDA ABI + Live apt/dpkg + ~70 MB Idle RAM",
-      flow: "Keeps dpkg/apt active on a writable rootfs so standard apt install works out-of-the-box (with systemd blocked by coreos-pid1), preserving full glibc ABI compatibility for NVIDIA CUDA, AMD ROCm, and enterprise binaries while isolating GPU VRAM via dmemcg.",
+      flow: "Keeps dpkg/apt active on a writable rootfs so standard apt install works out-of-the-box (with systemd blocked by moonhead-init), preserving full glibc ABI compatibility for NVIDIA CUDA, AMD ROCm, and enterprise binaries while isolating GPU VRAM via dmemcg.",
       diff: "Differentiator vs. Chimera Linux & Stock Ubuntu: Keeps glibc/CUDA binary compatibility while cutting idle daemon RAM by 4x–5x.",
       code: `# profiles/hpc.manifest
 PACKAGES="base-files,bash,coreutils,dpkg,apt,ca-certificates,build-essential,git,tmux"
-CUSTOM_DEBS="coreos-pid1_0.1.0.deb coreos-ebpf_0.1.0.deb"
+CUSTOM_DEBS="moonhead-init_0.1.0.deb moonhead-ebpf_0.1.0.deb"
 ROOTFS_MODE="ext4_live_apt"
 
 # Verify live apt never pulls systemd:
@@ -2401,11 +2401,11 @@ ROOTFS_MODE="ext4_live_apt"
       title: "Stage 1: Custom Linux 7.3 LTS, mmdebstrap & Rust PID 1 (Months 1–2)",
       gate: "EXIT GATE: <0.8s QEMU Boot | <75 MB Idle RAM | Zero systemd Packages",
       deliverables: [
-        "<strong>Custom Upstream Linux 7.3 LTS:</strong> Built inside your M5 Pro Linux VM via <code>make bindeb-pkg</code> with composable <code>coreos-7.3.config</code> (<code>MGLRU</code>, <code>PSI</code>, <code>sched_ext</code>, <code>BPF_LSM</code>, <code>Landlock</code>, Intel <code>FRED</code>).",
+        "<strong>Custom Upstream Linux 7.3 LTS:</strong> Built inside your M5 Pro Linux VM via <code>make bindeb-pkg</code> with composable <code>moonhead-7.3.config</code> (<code>MGLRU</code>, <code>PSI</code>, <code>sched_ext</code>, <code>BPF_LSM</code>, <code>Landlock</code>, Intel <code>FRED</code>).",
         "<strong>30-Second <code>mmdebstrap</code> Pipeline:</strong> Assembles a zero-<code>systemd</code> Debian/Ubuntu-compatible FHS rootfs and packs it with <code>mkfs.erofs -zlz4hc</code>.",
-        "<strong><code>coreos-pid1</code> (<code>cargo-deb</code>):</strong> Minimal Rust PID 1 (~4,500 LOC) declaring <code>Provides: init, systemd-sysv</code>, sealed <code>memfd</code> rings, and the <code>/proc/pressure</code> watchdog."
+        "<strong><code>moonhead-init</code> (<code>cargo-deb</code>):</strong> Minimal Rust PID 1 (~4,500 LOC) declaring <code>Provides: init, systemd-sysv</code>, sealed <code>memfd</code> rings, and the <code>/proc/pressure</code> watchdog."
       ],
-      code: `# kernel/fragments/coreos-7.3.config
+      code: `# kernel/fragments/moonhead-7.3.config
 CONFIG_LRU_GEN=y
 CONFIG_LRU_GEN_ENABLED=y
 CONFIG_PSI=y
@@ -2423,10 +2423,10 @@ CONFIG_CGROUP_DMEM=y`
       gate: "EXIT GATE: Live apt install Without systemd | <1.5 ms P99.9 Under Saturation",
       deliverables: [
         "<strong>Ubuntu Ergonomics & Netplan Parser:</strong> Translates <code>/etc/netplan/*.yaml</code> into Netlink calls and exposes <code>service</code>/<code>journalctl</code> CLI shims; verifies <code>apt install</code> never pulls <code>systemd</code>.",
-        "<strong><code>coreos-ebpf</code> Security & Data Plane:</strong> Deploys in-kernel BPF LSM filters on <code>io_uring</code> SQEs and line-rate <code>AF_XDP</code> packet drops.",
+        "<strong><code>moonhead-ebpf</code> Security & Data Plane:</strong> Deploys in-kernel BPF LSM filters on <code>io_uring</code> SQEs and line-rate <code>AF_XDP</code> packet drops.",
         "<strong>Rust Boot Hardware Prober & <code>core-jail</code>:</strong> Auto-calibrates ZRAM, dirty bytes, IRQ affinity, and <code>resctrl</code> L3 cache ways; launches <code>failfs</code> + <code>fchroot(2)</code> sandboxes."
       ],
-      code: `# Verify Ubuntu CLI shims & apt isolation inside running CORE-OS VM
+      code: `# Verify Ubuntu CLI shims & apt isolation inside running Moonhead OS VM
 $ netplan apply
 $ service postgres status
 $ apt-get update && apt-get install -y htop curl
@@ -2441,10 +2441,10 @@ $ dpkg -l | grep -E "systemd|dbus" || echo "PASS: Zero systemd"`
         "<strong>Head-to-Head Saturation Benchmark Suite:</strong> Automated Phoronix + workload suite validating P99.9 tail latency under 98% RAM + <code>RWF_DONTCACHE</code> scan load and 100GbE <code>AF_XDP</code> PPS floods."
       ],
       code: `# Standardized 6-Edition Benchmark Suite
-1. coreos-db: PostgreSQL/sysbench P99.9 under 98% RAM + RWF_DONTCACHE
-2. coreos-cloud: BPF io_uring + failfs + resctrl L3 QoS isolation
-3. coreos-net: pktgen / AF_XDP line-rate 100GbE PPS drop jitter
-4. coreos-hpc: Live apt/dpkg + CUDA/ROCm ABI verification`
+1. moonhead-db: PostgreSQL/sysbench P99.9 under 98% RAM + RWF_DONTCACHE
+2. moonhead-cloud: BPF io_uring + failfs + resctrl L3 QoS isolation
+3. moonhead-net: pktgen / AF_XDP line-rate 100GbE PPS drop jitter
+4. moonhead-hpc: Live apt/dpkg + CUDA/ROCm ABI verification`
     }
   ];
 

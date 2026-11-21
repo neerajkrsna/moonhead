@@ -21,7 +21,7 @@ pub fn probe_and_configure() -> HardwareProfile {
 
     let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
     println!(
-        "[coreos-hw] ram={} MiB numa_nodes={} zram={} MiB configured in {:.2}ms",
+        "[moonhead-hw] ram={} MiB numa_nodes={} zram={} MiB configured in {:.2}ms",
         total_ram_bytes / (1024 * 1024),
         numa_nodes,
         zram_bytes / (1024 * 1024),
@@ -168,7 +168,7 @@ fn probe_resctrl() {
     };
     if rc == 0 {
         if let Ok(cbm) = fs::read_to_string("/sys/fs/resctrl/info/L3/cbm_mask") {
-            println!("[coreos-hw] resctrl mounted (L3 cbm_mask={})", cbm.trim());
+            println!("[moonhead-hw] resctrl mounted (L3 cbm_mask={})", cbm.trim());
         }
     }
 }

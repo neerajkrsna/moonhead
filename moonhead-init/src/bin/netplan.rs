@@ -3,7 +3,7 @@ use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
 use std::process::{self, Command};
 
-const CTL_SOCK: &str = "/run/coreos/pid1.sock";
+const CTL_SOCK: &str = "/run/moonhead/pid1.sock";
 
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();

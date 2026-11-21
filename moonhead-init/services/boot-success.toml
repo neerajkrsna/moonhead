@@ -1,0 +1,5 @@
+name = "boot-success"
+exec = "/usr/local/sbin/moonhead-mark-boot-success"
+args = []
+cgroup = "batch"
+restart = false

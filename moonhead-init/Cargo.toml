@@ -1,0 +1,50 @@
+[package]
+name = "moonhead-init"
+version = "0.3.0"
+edition = "2021"
+description = "Moonhead OS PID 1 supervisor with PSI watchdog, Netlink Netplan, eBPF LSM, and Landlock sandboxing"
+license = "Apache-2.0"
+
+[dependencies]
+libc = "0.2"
+nix = { version = "0.29", features = ["signal", "mount", "sched", "process", "reboot", "fs", "event", "hostname"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+toml = "0.8"
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[package.metadata.deb]
+maintainer = "Moonhead OS Engineering <dev@moonhead.local>"
+section = "admin"
+priority = "required"
+provides = "init, systemd-sysv, linux-initramfs-tool"
+conflicts = "systemd, systemd-sysv, sysvinit-core"
+replaces = "systemd-sysv"
+depends = "$auto"
+assets = [
+    ["target/release/moonhead-init", "sbin/moonhead-init", "755"],
+    ["target/release/service", "usr/local/sbin/service", "755"],
+    ["target/release/journalctl", "usr/local/bin/journalctl", "755"],
+    ["target/release/netplan", "usr/local/sbin/netplan", "755"],
+    ["target/release/moonhead-jail", "usr/local/bin/moonhead-jail", "755"],
+    ["target/release/moonhead-xdp", "usr/bin/moonhead-xdp", "755"],
+    ["../build/arm64/ebpf/xdp_fastpath.bpf.o", "usr/lib/moonhead/xdp_fastpath.bpf.o", "644"],
+    ["../build/arm64/ebpf/io_uring_lsm.bpf.o", "usr/lib/moonhead/io_uring_lsm.bpf.o", "644"],
+    ["../scripts/moonhead-install.sh", "usr/local/sbin/moonhead-install", "755"],
+    ["../scripts/moonhead-mark-boot-success.sh", "usr/local/sbin/moonhead-mark-boot-success", "755"],
+    ["../scripts/moonhead-update.sh", "usr/local/sbin/moonhead-update", "755"],
+    ["services/console.toml", "etc/moonhead/services/console.toml", "644"],
+    ["services/boot-success.toml", "etc/moonhead/services/boot-success.toml", "644"],
+    ["netplan/01-default.yaml", "etc/netplan/01-default.yaml", "644"],
+    ["../build/arm64/ebpf/io_uring_lsm.bpf.o", "usr/lib/moonhead/io_uring_lsm.bpf.o", "644"],
+    ["../build/arm64/ebpf/scx_moonhead.bpf.o", "usr/lib/moonhead/scx_moonhead.bpf.o", "644"],
+]
+
+[[bin]]
+name = "moonhead-xdp"
+path = "src/bin/moonhead-xdp.rs"

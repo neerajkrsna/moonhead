@@ -8,7 +8,7 @@ pub const TOKEN_PSI_MEM_SOME: u64 = 2;
 pub const TOKEN_PSI_MEM_FULL: u64 = 3;
 pub const TOKEN_PSI_IO_SOME: u64 = 4;
 
-const BATCH_CGROUP: &str = "/sys/fs/cgroup/coreos.slice/batch";
+const BATCH_CGROUP: &str = "/sys/fs/cgroup/moonhead.slice/batch";
 const BATCH_MEM_FLOOR: u64 = 32 * 1024 * 1024; // 32 MiB minimum floor
 
 pub struct PsiWatchdog {
@@ -46,7 +46,7 @@ impl PsiWatchdog {
             .into_iter()
             .filter(|&x| x)
             .count();
-        println!("[coreos-psi] registered {}/3 microsecond EPOLLPRI pressure triggers", active);
+        println!("[moonhead-psi] registered {}/3 microsecond EPOLLPRI pressure triggers", active);
 
         let past = Instant::now() - Duration::from_secs(10);
         Self {
@@ -77,7 +77,7 @@ impl PsiWatchdog {
                 let target = ((current * 3) / 4).max(BATCH_MEM_FLOOR);
                 let _ = fs::write(format!("{}/memory.high", BATCH_CGROUP), target.to_string());
                 println!(
-                    "[coreos-psi] memory.some trigger -> clamped batch memory.high to {} MiB",
+                    "[moonhead-psi] memory.some trigger -> clamped batch memory.high to {} MiB",
                     target / (1024 * 1024)
                 );
             }
@@ -89,13 +89,13 @@ impl PsiWatchdog {
                 // Reclaim clean page cache immediately without blocking on dirty writeback
                 let _ = fs::write("/proc/sys/vm/drop_caches", "1");
                 println!(
-                    "[coreos-psi] memory.full critical trigger -> clamped batch to 32 MiB & shed clean pagecache"
+                    "[moonhead-psi] memory.full critical trigger -> clamped batch to 32 MiB & shed clean pagecache"
                 );
             }
             TOKEN_PSI_IO_SOME => {
                 let _ = fs::write(format!("{}/cpu.weight", BATCH_CGROUP), "10");
                 let _ = fs::write(format!("{}/io.weight", BATCH_CGROUP), "10");
-                println!("[coreos-psi] io.some trigger -> throttled batch cpu/io weight to 10");
+                println!("[moonhead-psi] io.some trigger -> throttled batch cpu/io weight to 10");
             }
             _ => {}
         }
@@ -107,7 +107,7 @@ impl PsiWatchdog {
             let _ = fs::write(format!("{}/cpu.weight", BATCH_CGROUP), "100");
             let _ = fs::write(format!("{}/io.weight", BATCH_CGROUP), "100");
             self.throttled = false;
-            println!("[coreos-psi] pressure subsided for 5s -> restored batch cgroup limits");
+            println!("[moonhead-psi] pressure subsided for 5s -> restored batch cgroup limits");
         }
     }
 }

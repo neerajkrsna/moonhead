@@ -36,16 +36,16 @@ fn main() {
     }
 
     let Some(start) = cmd_idx else {
-        eprintln!("Usage: core-jail [--ro <path>]... [--rw <path>]... [--] <command> [args...]");
+        eprintln!("Usage: moonhead-jail [--ro <path>]... [--rw <path>]... [--] <command> [args...]");
         process::exit(1);
     };
 
     if let Err(e) = apply_jail(&policy) {
-        eprintln!("[core-jail] sandbox initialization failed: {}", e);
+        eprintln!("[moonhead-jail] sandbox initialization failed: {}", e);
         process::exit(1);
     }
 
     let err = Command::new(&args[start]).args(&args[start + 1..]).exec();
-    eprintln!("[core-jail] exec '{}' failed: {}", args[start], err);
+    eprintln!("[moonhead-jail] exec '{}' failed: {}", args[start], err);
     process::exit(127);
 }

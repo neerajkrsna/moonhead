@@ -28,12 +28,14 @@ use std::path::Path;
 use std::process::{Child, Command};
 use std::time::{Duration, Instant};
 
-const SERVICE_DIR: &str = "/etc/coreos/services";
-const CTL_SOCK_PATH: &str = "/run/coreos/pid1.sock";
-const BPF_LSM_OBJ: &str = "/usr/lib/coreos/io_uring_lsm.bpf.o";
-const BPF_PIN_DIR: &str = "/sys/fs/bpf/coreos_uring";
+const SERVICE_DIR: &str = "/etc/moonhead/services";
+const CTL_SOCK_PATH: &str = "/run/moonhead/pid1.sock";
+const BPF_LSM_OBJ: &str = "/usr/lib/moonhead/io_uring_lsm.bpf.o";
+const BPF_PIN_DIR: &str = "/sys/fs/bpf/moonhead_uring";
 const TOKEN_SIGNALFD: u64 = 1;
 const TOKEN_CTL_SOCK: u64 = 5;
+const BPF_SCX_OBJ: &str = "/usr/lib/moonhead/scx_moonhead.bpf.o";
+const BPF_SCX_PIN_DIR: &str = "/sys/fs/bpf/moonhead_scx";
 
 #[derive(Debug, Clone, Deserialize)]
 struct ServiceSpec {
@@ -108,7 +110,7 @@ fn mount_api_filesystems() {
         MsFlags::MS_NOSUID | MsFlags::MS_NODEV,
         Some("mode=0755"),
     );
-    let _ = fs::create_dir_all("/run/coreos");
+    let _ = fs::create_dir_all("/run/moonhead");
     let _ = mount(
         Some("tmpfs"),
         "/tmp",
@@ -136,14 +138,14 @@ fn setup_cgroup_hierarchy() {
     for ctrl in ["+cpu", "+memory", "+io"] {
         let _ = fs::write("/sys/fs/cgroup/cgroup.subtree_control", ctrl);
     }
-    let _ = fs::create_dir_all("/sys/fs/cgroup/coreos.slice/foreground");
-    let _ = fs::create_dir_all("/sys/fs/cgroup/coreos.slice/batch");
+    let _ = fs::create_dir_all("/sys/fs/cgroup/moonhead.slice/foreground");
+    let _ = fs::create_dir_all("/sys/fs/cgroup/moonhead.slice/batch");
     let _ = fs::create_dir_all(JAILED_CGROUP_PATH);
     for ctrl in ["+cpu", "+memory", "+io"] {
-        let _ = fs::write("/sys/fs/cgroup/coreos.slice/cgroup.subtree_control", ctrl);
+        let _ = fs::write("/sys/fs/cgroup/moonhead.slice/cgroup.subtree_control", ctrl);
     }
-    let _ = fs::write("/sys/fs/cgroup/coreos.slice/foreground/cpu.weight", "1000");
-    let _ = fs::write("/sys/fs/cgroup/coreos.slice/batch/cpu.weight", "100");
+    let _ = fs::write("/sys/fs/cgroup/moonhead.slice/foreground/cpu.weight", "1000");
+    let _ = fs::write("/sys/fs/cgroup/moonhead.slice/batch/cpu.weight", "100");
     let _ = fs::write(format!("{}/cpu.weight", JAILED_CGROUP_PATH), "100");
 }
 
@@ -168,7 +170,7 @@ fn setup_ebpf_gatekeeper() {
         .unwrap_or(false);
 
     if !ok {
-        eprintln!("[coreos-ebpf] warning: failed to attach BPF LSM io_uring gatekeeper");
+        eprintln!("[moonhead-ebpf] warning: failed to attach BPF LSM io_uring gatekeeper");
         return;
     }
 
@@ -200,7 +202,7 @@ fn setup_ebpf_gatekeeper() {
 
         if updated {
             println!(
-                "[coreos-ebpf] BPF LSM io_uring gatekeeper active (jailed cgroup_id={})",
+                "[moonhead-ebpf] BPF LSM io_uring gatekeeper active (jailed cgroup_id={})",
                 cgid
             );
         }
@@ -235,7 +237,7 @@ fn configure_hostname_and_loopback() {
 }
 
 fn create_log_ring(name: &str) -> nix::Result<OwnedFd> {
-    let cname = CString::new(format!("coreos-log-{}", name)).unwrap();
+    let cname = CString::new(format!("moonhead-log-{}", name)).unwrap();
     let fd = memfd_create(
         &cname,
         MemFdCreateFlag::MFD_CLOEXEC | MemFdCreateFlag::MFD_ALLOW_SEALING,
@@ -295,12 +297,12 @@ fn spawn_service(svc: &mut ManagedService) -> std::io::Result<()> {
         "foreground"
     };
     let _ = fs::write(
-        format!("/sys/fs/cgroup/coreos.slice/{}/cgroup.procs", slice),
+        format!("/sys/fs/cgroup/moonhead.slice/{}/cgroup.procs", slice),
         pid.to_string(),
     );
 
     println!(
-        "[coreos-pid1] started '{}' (pid={}, cgroup={}, jail={})",
+        "[moonhead-init] started '{}' (pid={}, cgroup={}, jail={})",
         svc.spec.name, pid, slice, svc.spec.jail
     );
     svc.child = Some(child);
@@ -498,7 +500,7 @@ fn handle_ctl_client(
 }
 
 fn shutdown_system(services: &mut [ManagedService], mode: RebootMode) -> ! {
-    println!("[coreos-pid1] shutting down supervised services...");
+    println!("[moonhead-init] shutting down supervised services...");
     for svc in services.iter_mut() {
         if let Some(ref child) = svc.child {
             let _ = kill(Pid::from_raw(child.id() as i32), Signal::SIGTERM);
@@ -517,7 +519,7 @@ fn shutdown_system(services: &mut [ManagedService], mode: RebootMode) -> ! {
 
 fn main() {
     if std::process::id() != 1 {
-        eprintln!("coreos-pid1 must run as PID 1");
+        eprintln!("moonhead-init must run as PID 1");
         std::process::exit(1);
     }
 
@@ -527,11 +529,14 @@ fn main() {
     configure_hostname_and_loopback();
     setup_cgroup_hierarchy();
     setup_ebpf_gatekeeper();
+    setup_cgroup_hierarchy();
+    setup_sched_ext();
+
     let hw = hw_prober::probe_and_configure();
     let _ = netplan::apply_all();
 
     println!(
-        "[coreos-pid1] Linux 7.3 LTS boot complete ({} MiB RAM, {} NUMA, {} MiB ZRAM) — zero systemd active",
+        "[moonhead-init] Linux 7.3 boot complete ({} MiB RAM, {} NUMA, {} MiB ZRAM) — zero systemd active",
         hw.total_ram_bytes / (1024 * 1024),
         hw.numa_nodes,
         hw.zram_bytes / (1024 * 1024)
@@ -552,7 +557,7 @@ fn main() {
 
     let _ = fs::remove_file(CTL_SOCK_PATH);
     let ctl_listener =
-        UnixListener::bind(CTL_SOCK_PATH).expect("failed to bind /run/coreos/pid1.sock");
+        UnixListener::bind(CTL_SOCK_PATH).expect("failed to bind /run/moonhead/pid1.sock");
     ctl_listener
         .set_nonblocking(true)
         .expect("failed to set ctl_listener nonblocking");
@@ -641,7 +646,7 @@ fn handle_exit(
     let svc = &mut services[idx];
     svc.child = None;
     println!(
-        "[coreos-pid1] '{}' (pid={}) exited with status {}",
+        "[moonhead-init] '{}' (pid={}) exited with status {}",
         svc.spec.name, raw_pid, status
     );
 
@@ -689,11 +694,11 @@ fn mount_writable_overlays() {
         .map(|s| s.contains("overlay"))
         .unwrap_or(false);
     if !has_overlay {
-        eprintln!("[coreos-pid1] warning: kernel lacks overlayfs; /, /etc, and /var remain read-only");
+        eprintln!("[moonhead-init] warning: kernel lacks overlayfs; /, /etc, and /var remain read-only");
         return;
     }
 
-    let backing = if let Some(dev) = find_device_by_partname("COREOS_DATA") {
+    let backing = if let Some(dev) = find_device_by_partname("MOONHEAD_DATA") {
         if mount(
             Some(dev.as_str()),
             "/mnt/data",
@@ -758,7 +763,7 @@ fn mount_writable_overlays() {
     }
 
     println!(
-        "[coreos-pid1] mounted writable overlayfs ({}) on [{}]",
+        "[moonhead-init] mounted writable overlayfs ({}) on [{}]",
         backing,
         mounted.join(", ")
     );
@@ -788,5 +793,75 @@ fn reload_new_services(services: &mut Vec<ManagedService>) {
                 }
             }
         }
+    }
+}
+
+
+fn setup_sched_ext() {
+    if !std::path::Path::new(BPF_SCX_OBJ).exists() {
+        return;
+    }
+
+    let ok = Command::new("/usr/sbin/bpftool")
+        .args(["struct_ops", "register", BPF_SCX_OBJ, BPF_SCX_PIN_DIR])
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+
+    if !ok {
+        eprintln!("[moonhead-scx] warning: failed to register sched_ext BPF scheduler");
+        return;
+    }
+
+    let _ = Command::new("/usr/sbin/bpftool")
+        .args([
+            "map",
+            "pin",
+            "name",
+            "cgroup_tiers",
+            &format!("{}/cgroup_tiers", BPF_SCX_PIN_DIR),
+        ])
+        .status();
+
+    let _ = Command::new("/usr/sbin/bpftool")
+        .args([
+            "map",
+            "pin",
+            "name",
+            "scx_stats",
+            &format!("{}/scx_stats", BPF_SCX_PIN_DIR),
+        ])
+        .status();
+
+    let tiers: [(&str, u32); 3] = [
+        ("/sys/fs/cgroup/moonhead.slice/foreground", 1),
+        ("/sys/fs/cgroup/moonhead.slice/batch", 2),
+        ("/sys/fs/cgroup/moonhead.slice/jailed", 3),
+    ];
+
+    for (cg_path, tier) in tiers {
+        if let Ok(meta) = fs::metadata(cg_path) {
+            let cgid = meta.ino();
+            let key_bytes = cgid.to_ne_bytes();
+            let val_bytes = tier.to_ne_bytes();
+            let mut args = vec![
+                "map".to_string(),
+                "update".to_string(),
+                "pinned".to_string(),
+                format!("{}/cgroup_tiers", BPF_SCX_PIN_DIR),
+                "key".to_string(),
+                "hex".to_string(),
+            ];
+            args.extend(key_bytes.iter().map(|b| format!("{:02x}", b)));
+            args.push("value".to_string());
+            args.push("hex".to_string());
+            args.extend(val_bytes.iter().map(|b| format!("{:02x}", b)));
+
+            let _ = Command::new("/usr/sbin/bpftool").args(&args).status();
+        }
+    }
+
+    if let Ok(ops) = fs::read_to_string("/sys/kernel/sched_ext/root/ops") {
+        println!("[moonhead-scx] sched_ext active (ops={})", ops.trim());
     }
 }

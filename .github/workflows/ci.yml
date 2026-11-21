@@ -18,13 +18,16 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Check Rust PID 1 & core-xdp
-        run: cargo check --manifest-path coreos-pid1/Cargo.toml --all-targets
+      - name: Check Rust init and Moonhead utilities
+        run: cargo check --manifest-path moonhead-init/Cargo.toml --all-targets
 
       - name: Run clippy lints
-        run: cargo clippy --manifest-path coreos-pid1/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path moonhead-init/Cargo.toml --all-targets -- -D warnings
 
       - name: Lint shell scripts
         run: |
-          sudo apt-get update && sudo apt-get install -y shellcheck
-          shellcheck scripts/*.sh
+          sudo apt-get update && sudo apt-get install -y shellcheck cryptsetup-bin
+          shellcheck scripts/*.sh tests/*.sh
+
+      - name: Test signed A/B update flow
+        run: tests/test-update-flow.sh
