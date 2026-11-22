@@ -1,7 +1,7 @@
 # Moonhead OS
 
-> **Status:** `v0.1.0-alpha` (Developer Preview) — ARM64 runtime boot-tested
-> locally on macOS QEMU `hvf`.
+> **Status:** `v0.1.0-alpha` (Developer Preview) — ARM64 runtime build and
+> qualification image.
 
 Moonhead is an experimental Linux distribution built from upstream Linux
 7.3.4, a Rust PID 1, an immutable EROFS system image, and an
@@ -40,12 +40,12 @@ cd moonhead
 make deps
 make kernel
 make iso \
-  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem
+  UPDATE_PUBLIC_KEY_FILE=/path/to/moonhead-update-public.pem
 ```
 
 The build prompts for the `admin` password. This password is enabled for both
 console and SSH login. To add key-based SSH login as well, pass
-`SSH_PUBKEY_FILE="$HOME/.ssh/id_ed25519.pub"`.
+`SSH_PUBKEY_FILE=/path/to/id_ed25519.pub`.
 
 The installer ISO is written to:
 
@@ -63,41 +63,19 @@ To build a directly bootable disk image instead:
 
 ```bash
 make image \
-  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem
+  UPDATE_PUBLIC_KEY_FILE=/path/to/moonhead-update-public.pem
 ```
 
 Other generated formats are available through `make vmdk` and `make ova`.
 All generated artifacts remain below `build/`; `make clean` removes them.
 
-## Sync source from the Ubuntu VM
-
-To refresh this repository from `/home/risvai/core-os` without copying generated
-artifacts, run:
+## Boot an ARM64 image with QEMU
 
 ```bash
-scripts/sync-from-vm.sh --dry-run
-scripts/sync-from-vm.sh
-```
-
-SSH credentials are read from the user's normal SSH configuration. To use a
-specific key:
-
-```bash
-SSH_KEY=~/.ssh/id_ed25519 scripts/sync-from-vm.sh --dry-run
-```
-
-The script supports `VM_HOST`, `VM_USER`, and `VM_PATH` overrides. It syncs
-implementation directories and `Makefile` only; README, docs, licenses, GitHub
-configuration, and repository metadata are preserved.
-
-## Boot on macOS
-
-```bash
-brew install qemu zstd
 qemu-system-aarch64 \
-  -M virt -accel hvf -cpu host -smp 4 -m 2G -nographic \
-  -bios /opt/homebrew/share/qemu/edk2-aarch64-code.fd \
-  -drive file=moonhead-arm64.img,format=raw,if=virtio \
+  -M virt -accel kvm -cpu host -smp 4 -m 2G -nographic \
+  -bios /path/to/edk2-aarch64-code.fd \
+  -drive file=build/arm64/moonhead-arm64.img,format=raw,if=virtio \
   -netdev user,id=net0,hostfwd=tcp::2222-:22,hostfwd=udp::9999-:9999 \
   -device virtio-net-pci,netdev=net0
 ```
@@ -127,8 +105,8 @@ embedded during the image build.
 
 ```bash
 make signed-update \
-  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem \
-  UPDATE_SIGNING_KEY=/secure/moonhead-update-private.pem \
+  UPDATE_PUBLIC_KEY_FILE=/path/to/moonhead-update-public.pem \
+  UPDATE_SIGNING_KEY=/path/to/moonhead-update-private.pem \
   UPDATE_VERSION=0.2.0
 ```
 
@@ -149,10 +127,10 @@ Qualify direct-image boot, persistence, signed update, and rollback:
 
 ```bash
 ADMIN_PASSWORD='test-password' make image \
-  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem
+  UPDATE_PUBLIC_KEY_FILE=/path/to/moonhead-update-public.pem
 ADMIN_PASSWORD='test-password' make signed-update \
-  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem \
-  UPDATE_SIGNING_KEY=/secure/moonhead-update-private.pem \
+  UPDATE_PUBLIC_KEY_FILE=/path/to/moonhead-update-public.pem \
+  UPDATE_SIGNING_KEY=/path/to/moonhead-update-private.pem \
   UPDATE_VERSION=0.1.0-qualify
 ADMIN_PASSWORD='test-password' make qualify-arm64
 ```
@@ -164,7 +142,7 @@ Qualify the installer ISO separately:
 
 ```bash
 ADMIN_PASSWORD='test-password' make iso \
-  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem
+  UPDATE_PUBLIC_KEY_FILE=/path/to/moonhead-update-public.pem
 ADMIN_PASSWORD='test-password' make qualify-arm64-iso
 ```
 

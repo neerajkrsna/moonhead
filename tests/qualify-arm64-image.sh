@@ -26,7 +26,7 @@ Optional:
   QEMU_SSH_PORT=2228
   QEMU_FIRMWARE=/path/to/uefi-code.fd
   QEMU_BIN=qemu-system-aarch64
-  QEMU_ACCEL=hvf|tcg|kvm
+  QEMU_ACCEL=kvm|tcg|hvf
   QEMU_CPU=max|host
 EOF
 }
@@ -68,7 +68,6 @@ QEMU_BIN="${QEMU_BIN:-qemu-system-aarch64}"
 require_command "${QEMU_BIN}"
 if [[ -z "${QEMU_FIRMWARE:-}" ]]; then
   for candidate in \
-    /opt/homebrew/share/qemu/edk2-aarch64-code.fd \
     /usr/share/AAVMF/AAVMF_CODE.fd \
     /usr/share/AAVMF/AAVMF_CODE.no-secboot.fd; do
     if [[ -f "${candidate}" ]]; then
