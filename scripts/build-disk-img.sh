@@ -4,11 +4,11 @@ set -euo pipefail
 ARCH="${ARCH:-arm64}"
 KERNEL_DIR="${KERNEL_DIR:-./kernel/linux-7.3}"
 BUILD_DIR="${BUILD_DIR:-./build/${ARCH}}"
-ROOTFS_EROFS="${BUILD_DIR}/rootfs.erofs"
+ROOTFS_EROFS="${BUILD_DIR}/rootfs-${ARCH}.erofs"
 OUT_IMG="${BUILD_DIR}/moonhead-${ARCH}.img"
 STAGE_DIR="${BUILD_DIR}/img-stage"
 DATA_SIZE_MB="${DATA_SIZE_MB:-7680}"
-ESP_SIZE_MB=128
+ESP_SIZE_MB=256
 STATE_SIZE_MB=64
 SECURE_BOOT="${SECURE_BOOT:-0}"
 
@@ -33,8 +33,8 @@ rm -rf "${STAGE_DIR}"
 mkdir -p "${STAGE_DIR}/EFI/BOOT"
 
 # 1. Pad rootfs.erofs to 4096-byte boundary and generate dm-verity Merkle hash tree
-VERITY_DATA="${STAGE_DIR}/rootfs-verity.erofs"
-VERITY_HASH="${STAGE_DIR}/rootfs.verity"
+VERITY_DATA="${STAGE_DIR}/rootfs-${ARCH}-verity.erofs"
+VERITY_HASH="${STAGE_DIR}/rootfs-${ARCH}.verity"
 cp "${ROOTFS_EROFS}" "${VERITY_DATA}"
 RAW_BYTES=$(stat -c%s "${VERITY_DATA}")
 ALIGNED_BYTES=$(( (RAW_BYTES + 4095) / 4096 * 4096 ))
@@ -52,9 +52,9 @@ set default=0
 insmod part_gpt
 insmod fat
 insmod ext2
-search --no-floppy --file --set=root /kernel-A
+search --no-floppy --file --set=root /kernel-${ARCH}-A
 
-menuentry "Moonhead OS (dm-verity A/B)" {
+menuentry "Moonhead OS ${ARCH} (dm-verity A/B)" {
     insmod ext2
     search --no-floppy --label --set=state MOONHEAD_STATE
     load_env --file=(\$state)/grubenv
@@ -84,7 +84,7 @@ menuentry "Moonhead OS (dm-verity A/B)" {
         set root_salt=\$root_salt_b
     fi
     set dm_table="moonhead-verity,,,ro,0 ${DATA_SECTORS} verity 1 PARTUUID=\$root_partuuid PARTUUID=\$hash_partuuid 4096 4096 \$data_blocks 1 sha256 \$root_hash \$root_salt 1 panic_on_corruption"
-    linux /kernel-\$slot root=/dev/dm-0 rootfstype=erofs ro rootwait dm-mod.waitfor=PARTUUID=\$root_partuuid,PARTUUID=\$hash_partuuid dm-mod.create="\$dm_table" init=/sbin/moonhead-init lsm=landlock,yama,bpf ${CONSOLE_ARG}
+    linux /kernel-${ARCH}-\$slot root=/dev/dm-0 rootfstype=erofs ro rootwait dm-mod.waitfor=PARTUUID=\$root_partuuid,PARTUUID=\$hash_partuuid dm-mod.create="\$dm_table" init=/sbin/moonhead-init lsm=landlock,yama,bpf ${CONSOLE_ARG}
 }
 EOF
 
@@ -112,15 +112,15 @@ grub-mkstandalone \
 sign_efi "${STAGE_DIR}/EFI/BOOT/${EFI_BOOT_NAME}"
 
 # 2. Build FAT32 EFI System Partition
-ESP_IMG="${STAGE_DIR}/esp.img"
+ESP_IMG="${STAGE_DIR}/esp-${ARCH}.img"
 truncate -s "${ESP_SIZE_MB}M" "${ESP_IMG}"
 mkfs.vfat -F 32 -n "MOONHEADESP" "${ESP_IMG}" >/dev/null
 mmd -i "${ESP_IMG}" ::/EFI ::/EFI/BOOT
 mcopy -i "${ESP_IMG}" "${STAGE_DIR}/EFI/BOOT/${EFI_BOOT_NAME}" "::/EFI/BOOT/${EFI_BOOT_NAME}"
 cp "${KERNEL_IMG}" "${STAGE_DIR}/kernel"
 sign_efi "${STAGE_DIR}/kernel"
-mcopy -i "${ESP_IMG}" "${STAGE_DIR}/kernel" ::/kernel-A
-mcopy -i "${ESP_IMG}" "${STAGE_DIR}/kernel" ::/kernel-B
+mcopy -i "${ESP_IMG}" "${STAGE_DIR}/kernel" "::/kernel-${ARCH}-A"
+mcopy -i "${ESP_IMG}" "${STAGE_DIR}/kernel" "::/kernel-${ARCH}-B"
 if [[ "${SECURE_BOOT}" == "1" ]]; then
   openssl x509 -in "${SECURE_BOOT_CERT}" -outform DER \
     -out "${STAGE_DIR}/secure-boot-cert.der"
@@ -135,11 +135,11 @@ grub-editenv "${STATE_STAGE}/grubenv" set \
   slot=A healthy_slot=A boot_pending=0 boot_attempts=0 version=0.0.0 \
   "root_hash_a=${ROOT_HASH}" "root_hash_b=${ROOT_HASH}" \
   "root_salt_a=${SALT}" "root_salt_b=${SALT}" "data_blocks=${DATA_BLOCKS}"
-STATE_IMG="${STAGE_DIR}/state.img"
+STATE_IMG="${STAGE_DIR}/state-${ARCH}.img"
 truncate -s "${STATE_SIZE_MB}M" "${STATE_IMG}"
 mkfs.ext4 -q -F -L MOONHEAD_STATE -d "${STATE_STAGE}" "${STATE_IMG}"
 
-DATA_IMG="${STAGE_DIR}/data.img"
+DATA_IMG="${STAGE_DIR}/data-${ARCH}.img"
 truncate -s "${DATA_SIZE_MB}M" "${DATA_IMG}"
 mkfs.ext4 -F -L "MOONHEAD_DATA" "${DATA_IMG}" >/dev/null
 

@@ -5,6 +5,7 @@ KERNEL_VER  ?= 7.3.4
 KERNEL_URL  := https://cdn.kernel.org/pub/linux/kernel/v7.x/linux-$(KERNEL_VER).tar.xz
 KERNEL_DIR  ?= ./kernel/linux-7.3
 BUILD_DIR   ?= ./build/$(ARCH)
+KERNEL_UPDATE_IMAGE ?=
 JOBS        ?= $(shell nproc)
 DATA_SIZE_MB ?= 7680
 SSH_PUBKEY_FILE ?=
@@ -30,7 +31,7 @@ else
                -append "root=/dev/vda rootfstype=erofs ro init=/sbin/moonhead-init lsm=landlock,yama,bpf console=ttyAMA0"
 endif
 
-.PHONY: all deps fetch-kernel ebpf pid1 kernel rootfs run-qemu clean image vmdk iso ova production-iso production-update signed-update
+.PHONY: all deps fetch-kernel ebpf pid1 kernel rootfs run-qemu clean image vmdk iso ova production-iso production-update signed-update qualify-arm64 qualify-arm64-iso
 
 all: ebpf pid1 rootfs
 
@@ -40,7 +41,7 @@ deps:
 	  build-essential bc bison flex libssl-dev libelf-dev dwarves cpio zstd \
 	  debhelper rsync kmod curl xz-utils clang llvm libbpf-dev bpftool \
 	  sbsigntool grub-efi-arm64-bin grub-efi-amd64-bin grub-common \
-	  dosfstools mtools gdisk e2fsprogs xorriso busybox-static qemu-utils openssl
+	  dosfstools mtools gdisk e2fsprogs xorriso busybox-static qemu-utils openssl sshpass
 	command -v cargo-deb >/dev/null 2>&1 || cargo install cargo-deb --locked
 
 fetch-kernel:
@@ -50,32 +51,33 @@ fetch-kernel:
 	  curl -fL $(KERNEL_URL) | tar -xJ --strip-components=1 -C $(KERNEL_DIR); \
 	fi
 
-# Compile CO-RE BPF LSM io_uring gatekeeper against the exact Linux 7.3 vmlinux BTF
-#ebpf:
-#	mkdir -p $(BUILD_DIR)/ebpf
-#	bpftool btf dump file $(KERNEL_DIR)/vmlinux format c > $(BUILD_DIR)/ebpf/vmlinux.h
-#	clang -O2 -g -Wno-missing-declarations -target bpf -D__TARGET_ARCH_$(BPF_ARCH) \
-#	  -I$(BUILD_DIR)/ebpf -c ./moonhead-ebpf/io_uring_lsm.bpf.c \
-#	  -o $(BUILD_DIR)/ebpf/io_uring_lsm.bpf.o
-#	clang -O2 -g -Wno-missing-declarations -target bpf -D__TARGET_ARCH_$(BPF_ARCH) \
-#	  -I$(BUILD_DIR)/ebpf -c ./moonhead-ebpf/scx_moonhead.bpf.c \
-#	  -o $(BUILD_DIR)/ebpf/scx_moonhead.bpf.o
+# Compile CO-RE BPF programs against the exact Linux 7.3 vmlinux BTF.
 ebpf:
 	mkdir -p $(BUILD_DIR)/ebpf
+	rm -f $(BUILD_DIR)/ebpf/io_uring_lsm.bpf.o \
+	  $(BUILD_DIR)/ebpf/scx_moonhead.bpf.o $(BUILD_DIR)/ebpf/xdp_fastpath.bpf.o
 	bpftool btf dump file $(KERNEL_DIR)/vmlinux format c >$(BUILD_DIR)/ebpf/vmlinux.h
 	clang -O2 -g -Wno-missing-declarations -target bpf -D__TARGET_ARCH_$(BPF_ARCH) \
 	  -I$(BUILD_DIR)/ebpf -c ./moonhead-ebpf/io_uring_lsm.bpf.c \
-	  -o $(BUILD_DIR)/ebpf/io_uring_lsm.bpf.o
+	  -o $(BUILD_DIR)/ebpf/io_uring_lsm-$(ARCH).bpf.o
 	clang -O2 -g -Wno-missing-declarations -target bpf -D__TARGET_ARCH_$(BPF_ARCH) \
 	  -I$(BUILD_DIR)/ebpf -c ./moonhead-ebpf/scx_moonhead.bpf.c \
-	  -o $(BUILD_DIR)/ebpf/scx_moonhead.bpf.o
+	  -o $(BUILD_DIR)/ebpf/scx_moonhead-$(ARCH).bpf.o
 	clang -O2 -g -Wno-missing-declarations -target bpf -D__TARGET_ARCH_$(BPF_ARCH) \
 	  -I$(BUILD_DIR)/ebpf -c ./moonhead-ebpf/xdp_fastpath.bpf.c \
-	  -o $(BUILD_DIR)/ebpf/xdp_fastpath.bpf.o
+	  -o $(BUILD_DIR)/ebpf/xdp_fastpath-$(ARCH).bpf.o
 
 
 pid1: ebpf
 	mkdir -p $(BUILD_DIR)/debs
+	rm -rf ./build/package-assets
+	mkdir -p ./build/package-assets/ebpf
+	cp $(BUILD_DIR)/ebpf/io_uring_lsm-$(ARCH).bpf.o \
+	  ./build/package-assets/ebpf/io_uring_lsm.bpf.o
+	cp $(BUILD_DIR)/ebpf/scx_moonhead-$(ARCH).bpf.o \
+	  ./build/package-assets/ebpf/scx_moonhead.bpf.o
+	cp $(BUILD_DIR)/ebpf/xdp_fastpath-$(ARCH).bpf.o \
+	  ./build/package-assets/ebpf/xdp_fastpath.bpf.o
 	cd moonhead-init && cargo deb --output ../$(BUILD_DIR)/debs/
 
 kernel: fetch-kernel
@@ -86,8 +88,7 @@ kernel: fetch-kernel
 	$(MAKE) -C $(KERNEL_DIR) ARCH=$(ARCH) -j$(JOBS)
 
 rootfs: pid1
-	@test -n "$(SSH_PUBKEY_FILE)" || { echo "ERROR: set SSH_PUBKEY_FILE=path/to/id_ed25519.pub" >&2; exit 1; }
-	@test -f "$(SSH_PUBKEY_FILE)" || { echo "ERROR: SSH_PUBKEY_FILE does not exist: $(SSH_PUBKEY_FILE)" >&2; exit 1; }
+	@test -z "$(SSH_PUBKEY_FILE)" || test -f "$(SSH_PUBKEY_FILE)" || { echo "ERROR: SSH_PUBKEY_FILE does not exist: $(SSH_PUBKEY_FILE)" >&2; exit 1; }
 	sudo ARCH=$(ARCH) SUITE=$(SUITE) MIRROR=$(MIRROR) BUILD_DIR=$(BUILD_DIR) \
 	  SSH_PUBKEY_FILE="$(abspath $(SSH_PUBKEY_FILE))" \
 	  UPDATE_PUBLIC_KEY_FILE="$(if $(UPDATE_PUBLIC_KEY_FILE),$(abspath $(UPDATE_PUBLIC_KEY_FILE)),)" \
@@ -97,10 +98,25 @@ rootfs: pid1
 run-qemu:
 	$(QEMU_BIN) $(QEMU_ARGS) -m 2G -smp 4 -nographic \
 	  -netdev user,id=net0 -device virtio-net-pci,netdev=net0 \
-	  -drive file=$(BUILD_DIR)/rootfs.erofs,format=raw,if=virtio,readonly=on
+	  -drive file=$(BUILD_DIR)/rootfs-$(ARCH).erofs,format=raw,if=virtio,readonly=on
 
 clean:
 	rm -rf ./build
+
+qualify-arm64:
+	@test "$(ARCH)" = "arm64" || { echo "ERROR: qualify-arm64 requires ARCH=arm64" >&2; exit 1; }
+	@test -n "$(ADMIN_PASSWORD)" || { echo "ERROR: ADMIN_PASSWORD is required" >&2; exit 1; }
+	@test -f "$(BUILD_DIR)/moonhead-arm64.img" || { echo "ERROR: build image first with 'make image'" >&2; exit 1; }
+	@test -d "$(BUILD_DIR)/update" || { echo "ERROR: build signed update with 'make signed-update'" >&2; exit 1; }
+	ADMIN_PASSWORD="$(ADMIN_PASSWORD)" ./tests/qualify-arm64-image.sh \
+	  "$(BUILD_DIR)/moonhead-arm64.img" "$(BUILD_DIR)/update"
+
+qualify-arm64-iso:
+	@test "$(ARCH)" = "arm64" || { echo "ERROR: qualify-arm64-iso requires ARCH=arm64" >&2; exit 1; }
+	@test -n "$(ADMIN_PASSWORD)" || { echo "ERROR: ADMIN_PASSWORD is required" >&2; exit 1; }
+	@test -f "$(BUILD_DIR)/moonhead-arm64.iso" || { echo "ERROR: build installer with 'make iso'" >&2; exit 1; }
+	ADMIN_PASSWORD="$(ADMIN_PASSWORD)" ./tests/qualify-arm64-iso.sh \
+	  "$(BUILD_DIR)/moonhead-arm64.iso"
 
 
 image: rootfs
@@ -120,7 +136,6 @@ iso: rootfs
 	  ./scripts/build-iso.sh
 
 production-iso:
-	@test -n "$(SSH_PUBKEY_FILE)" || { echo "ERROR: SSH_PUBKEY_FILE is required" >&2; exit 1; }
 	@test -n "$(UPDATE_PUBLIC_KEY_FILE)" || { echo "ERROR: UPDATE_PUBLIC_KEY_FILE is required" >&2; exit 1; }
 	@test -f "$(UPDATE_PUBLIC_KEY_FILE)" || { echo "ERROR: update public key does not exist" >&2; exit 1; }
 	@test -n "$(SECURE_BOOT_KEY)" || { echo "ERROR: SECURE_BOOT_KEY is required" >&2; exit 1; }
@@ -136,8 +151,8 @@ signed-update: rootfs kernel
 	@test -n "$(UPDATE_SIGNING_KEY)" || { echo "ERROR: UPDATE_SIGNING_KEY is required" >&2; exit 1; }
 	@test -n "$(UPDATE_VERSION)" || { echo "ERROR: UPDATE_VERSION is required" >&2; exit 1; }
 	UPDATE_SIGNING_KEY="$(UPDATE_SIGNING_KEY)" ARCH="$(ARCH)" \
-	  KERNEL_IMAGE="$(if $(SECURE_BOOT),$(BUILD_DIR)/iso-stage/live/vmlinuz,$(KERNEL_IMAGE))" \
-	  ROOTFS_IMAGE="$(BUILD_DIR)/rootfs.erofs" \
+	  KERNEL_IMAGE="$(if $(KERNEL_UPDATE_IMAGE),$(KERNEL_UPDATE_IMAGE),$(KERNEL_IMAGE))" \
+	  ROOTFS_IMAGE="$(BUILD_DIR)/rootfs-$(ARCH).erofs" \
 	  ./scripts/create-update.sh "$(UPDATE_VERSION)" "$(BUILD_DIR)/update"
 
 production-update: production-iso
@@ -147,7 +162,8 @@ production-update: production-iso
 	$(MAKE) signed-update \
 	  SSH_PUBKEY_FILE="$(SSH_PUBKEY_FILE)" \
 	  UPDATE_PUBLIC_KEY_FILE="$(UPDATE_PUBLIC_KEY_FILE)" \
-	  SECURE_BOOT=1 UPDATE_SIGNING_KEY="$(UPDATE_SIGNING_KEY)" \
+	  KERNEL_UPDATE_IMAGE="$(BUILD_DIR)/iso-stage/live/vmlinuz-$(ARCH)" \
+	  UPDATE_SIGNING_KEY="$(UPDATE_SIGNING_KEY)" \
 	  UPDATE_VERSION="$(UPDATE_VERSION)"
 
 ova: image

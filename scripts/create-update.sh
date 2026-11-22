@@ -22,13 +22,18 @@ if [[ ! "${VERSION}" =~ ^[0-9A-Za-z.+:~-]+$ ]]; then
 fi
 
 mkdir -p "${OUTPUT_DIR}"
-install -m 0644 "${KERNEL_IMAGE}" "${OUTPUT_DIR}/kernel"
-install -m 0644 "${ROOTFS_IMAGE}" "${OUTPUT_DIR}/rootfs.erofs"
-ROOT_BYTES=$(stat -c%s "${OUTPUT_DIR}/rootfs.erofs")
+rm -f "${OUTPUT_DIR}/kernel" "${OUTPUT_DIR}/rootfs.erofs" \
+  "${OUTPUT_DIR}/rootfs.verity"
+KERNEL_FILE="kernel-${ARCH}"
+ROOTFS_FILE="rootfs-${ARCH}.erofs"
+VERITY_FILE="rootfs-${ARCH}.verity"
+install -m 0644 "${KERNEL_IMAGE}" "${OUTPUT_DIR}/${KERNEL_FILE}"
+install -m 0644 "${ROOTFS_IMAGE}" "${OUTPUT_DIR}/${ROOTFS_FILE}"
+ROOT_BYTES=$(stat -c%s "${OUTPUT_DIR}/${ROOTFS_FILE}")
 ALIGNED_BYTES=$(( (ROOT_BYTES + 4095) / 4096 * 4096 ))
-truncate -s "${ALIGNED_BYTES}" "${OUTPUT_DIR}/rootfs.erofs"
+truncate -s "${ALIGNED_BYTES}" "${OUTPUT_DIR}/${ROOTFS_FILE}"
 VERITY_OUT=$(veritysetup format --data-block-size=4096 --hash-block-size=4096 \
-  "${OUTPUT_DIR}/rootfs.erofs" "${OUTPUT_DIR}/rootfs.verity")
+  "${OUTPUT_DIR}/${ROOTFS_FILE}" "${OUTPUT_DIR}/${VERITY_FILE}")
 ROOT_HASH=$(printf '%s\n' "${VERITY_OUT}" | awk '/^Root hash:/ {print $3}')
 SALT=$(printf '%s\n' "${VERITY_OUT}" | awk '/^Salt:/ {print $2}')
 DATA_BLOCKS=$((ALIGNED_BYTES / 4096))
@@ -36,9 +41,9 @@ DATA_BLOCKS=$((ALIGNED_BYTES / 4096))
   echo "format=moonhead-update-v1"
   echo "architecture=${ARCH}"
   echo "version=${VERSION}"
-  printf 'kernel-sha256=%s\n' "$(sha256sum "${OUTPUT_DIR}/kernel" | cut -d' ' -f1)"
-  printf 'rootfs-sha256=%s\n' "$(sha256sum "${OUTPUT_DIR}/rootfs.erofs" | cut -d' ' -f1)"
-  printf 'verity-sha256=%s\n' "$(sha256sum "${OUTPUT_DIR}/rootfs.verity" | cut -d' ' -f1)"
+  printf 'kernel-sha256=%s\n' "$(sha256sum "${OUTPUT_DIR}/${KERNEL_FILE}" | cut -d' ' -f1)"
+  printf 'rootfs-sha256=%s\n' "$(sha256sum "${OUTPUT_DIR}/${ROOTFS_FILE}" | cut -d' ' -f1)"
+  printf 'verity-sha256=%s\n' "$(sha256sum "${OUTPUT_DIR}/${VERITY_FILE}" | cut -d' ' -f1)"
   printf 'root-hash=%s\n' "${ROOT_HASH}"
   printf 'salt=%s\n' "${SALT}"
   printf 'data-blocks=%s\n' "${DATA_BLOCKS}"

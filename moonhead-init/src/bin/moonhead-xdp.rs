@@ -103,11 +103,11 @@ struct BpfMapElemAttr {
 
 struct U64Ring {
     producer: *mut AtomicU32,
-    consumer: *mut AtomicU32,
+    //consumer: *mut AtomicU32,
     desc: *mut u64,
     mask: u32,
     cached_prod: u32,
-    cached_cons: u32,
+    //cached_cons: u32,
 }
 
 struct DescRing {
@@ -209,8 +209,8 @@ fn main() {
     }
 
     unsafe {
-        libc::signal(libc::SIGINT, handle_sigint as libc::sighandler_t);
-        libc::signal(libc::SIGTERM, handle_sigint as libc::sighandler_t);
+        libc::signal(libc::SIGINT, handle_sigint as *const () as libc::sighandler_t);
+        libc::signal(libc::SIGTERM, handle_sigint as *const () as libc::sighandler_t);
     }
 
     let _ = fs::remove_dir_all(XDP_PIN_DIR);
@@ -379,11 +379,11 @@ fn main() {
     let mut fill_ring = unsafe {
         U64Ring {
             producer: fr_map.add(offsets.fr.producer as usize) as *mut AtomicU32,
-            consumer: fr_map.add(offsets.fr.consumer as usize) as *mut AtomicU32,
+            //consumer: fr_map.add(offsets.fr.consumer as usize) as *mut AtomicU32,
             desc: fr_map.add(offsets.fr.desc as usize) as *mut u64,
             mask: RING_SIZE - 1,
             cached_prod: 0,
-            cached_cons: 0,
+            //cached_cons: 0,
         }
     };
 
@@ -489,7 +489,7 @@ fn main() {
             (*rx_ring.consumer).store(rx_ring.cached_cons, Ordering::Release);
             (*fill_ring.producer).store(fill_ring.cached_prod, Ordering::Release);
 
-            if rx_packets % 100 == 0 || rx_packets <= 5 {
+            if rx_packets.is_multiple_of(100) || rx_packets <= 5 {
                 println!(
                     "[moonhead-xdp] bypassed kernel stack: {} frames ({} bytes) delivered to UMEM",
                     rx_packets, rx_bytes

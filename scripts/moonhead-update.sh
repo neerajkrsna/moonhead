@@ -5,6 +5,10 @@ UPDATE_DIR="${1:-}"
 PUBLIC_KEY="${UPDATE_PUBLIC_KEY:-/etc/moonhead/update-public-key.pem}"
 STATE_DIR="${MOONHEAD_STATE_DIR:-/mnt/moonhead-state}"
 ESP_DIR="${MOONHEAD_ESP_DIR:-/mnt/moonhead-esp}"
+TARGET_ARCH=$(dpkg --print-architecture)
+KERNEL_FILE="kernel-${TARGET_ARCH}"
+ROOTFS_FILE="rootfs-${TARGET_ARCH}.erofs"
+VERITY_FILE="rootfs-${TARGET_ARCH}.verity"
 
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "ERROR: moonhead-update must run as root (use sudo)." >&2
@@ -19,7 +23,7 @@ if [[ ! -f "${PUBLIC_KEY}" ]]; then
   exit 1
 fi
 
-for required in manifest manifest.sig kernel rootfs.erofs rootfs.verity; do
+for required in manifest manifest.sig "${KERNEL_FILE}" "${ROOTFS_FILE}" "${VERITY_FILE}"; do
   if [[ ! -f "${UPDATE_DIR}/${required}" ]]; then
     echo "ERROR: update is missing ${required}." >&2
     exit 1
@@ -55,7 +59,7 @@ while IFS='=' read -r key value; do
 done < "${UPDATE_DIR}/manifest"
 
 if [[ "${FORMAT}" != "moonhead-update-v1" ||
-      "${ARCHITECTURE}" != "$(dpkg --print-architecture)" ||
+      "${ARCHITECTURE}" != "${TARGET_ARCH}" ||
       -z "${VERSION}" ||
       ! "${KERNEL_SHA256}" =~ ^[[:xdigit:]]{64}$ ||
       ! "${ROOTFS_SHA256}" =~ ^[[:xdigit:]]{64}$ ||
@@ -70,9 +74,9 @@ if [[ ! "${VERSION}" =~ ^[0-9A-Za-z.+:~-]+$ ]]; then
   echo "ERROR: update version contains unsupported characters." >&2
   exit 1
 fi
-printf '%s  %s\n' "${KERNEL_SHA256}" "${UPDATE_DIR}/kernel" | sha256sum -c -
-printf '%s  %s\n' "${ROOTFS_SHA256}" "${UPDATE_DIR}/rootfs.erofs" | sha256sum -c -
-printf '%s  %s\n' "${VERITY_SHA256}" "${UPDATE_DIR}/rootfs.verity" | sha256sum -c -
+printf '%s  %s\n' "${KERNEL_SHA256}" "${UPDATE_DIR}/${KERNEL_FILE}" | sha256sum -c -
+printf '%s  %s\n' "${ROOTFS_SHA256}" "${UPDATE_DIR}/${ROOTFS_FILE}" | sha256sum -c -
+printf '%s  %s\n' "${VERITY_SHA256}" "${UPDATE_DIR}/${VERITY_FILE}" | sha256sum -c -
 
 mkdir -p "${STATE_DIR}" "${ESP_DIR}"
 if ! findmnt -rn "${STATE_DIR}" >/dev/null; then
@@ -100,16 +104,16 @@ if [[ -n "${CURRENT_VERSION}" ]] &&
   echo "ERROR: update version ${VERSION} is not newer than ${CURRENT_VERSION}." >&2
   exit 1
 fi
-ROOT_DEV=$(blkid -L "${ROOT_LABEL}")
-HASH_DEV=$(blkid -L "${HASH_LABEL}")
+ROOT_DEV=$(findfs "PARTLABEL=${ROOT_LABEL}" 2>/dev/null || true)
+HASH_DEV=$(findfs "PARTLABEL=${HASH_LABEL}" 2>/dev/null || true)
 if [[ -z "${ROOT_DEV}" || -z "${HASH_DEV}" ]]; then
   echo "ERROR: block devices for slot ${TARGET_SLOT} were not found." >&2
   exit 1
 fi
 ROOT_SIZE=$(blockdev --getsize64 "${ROOT_DEV}")
 HASH_SIZE=$(blockdev --getsize64 "${HASH_DEV}")
-IMAGE_SIZE=$(stat -c%s "${UPDATE_DIR}/rootfs.erofs")
-VERITY_SIZE=$(stat -c%s "${UPDATE_DIR}/rootfs.verity")
+IMAGE_SIZE=$(stat -c%s "${UPDATE_DIR}/${ROOTFS_FILE}")
+VERITY_SIZE=$(stat -c%s "${UPDATE_DIR}/${VERITY_FILE}")
 if (( IMAGE_SIZE > ROOT_SIZE )); then
   echo "ERROR: root filesystem is too large for slot ${TARGET_SLOT}." >&2
   exit 1
@@ -120,10 +124,12 @@ if (( VERITY_SIZE > HASH_SIZE )); then
 fi
 
 echo "Installing signed update ${VERSION} into slot ${TARGET_SLOT}..."
-dd if="${UPDATE_DIR}/rootfs.erofs" of="${ROOT_DEV}" bs=4M conv=fsync status=progress
-dd if="${UPDATE_DIR}/rootfs.verity" of="${HASH_DEV}" bs=4M conv=fsync status=progress
-install -m 0644 "${UPDATE_DIR}/kernel" "${ESP_DIR}/kernel-${TARGET_SLOT}.tmp"
-mv -f "${ESP_DIR}/kernel-${TARGET_SLOT}.tmp" "${ESP_DIR}/kernel-${TARGET_SLOT}"
+dd if="${UPDATE_DIR}/${ROOTFS_FILE}" of="${ROOT_DEV}" bs=4M conv=fsync status=progress
+dd if="${UPDATE_DIR}/${VERITY_FILE}" of="${HASH_DEV}" bs=4M conv=fsync status=progress
+install -m 0644 "${UPDATE_DIR}/${KERNEL_FILE}" \
+  "${ESP_DIR}/kernel-${TARGET_ARCH}-${TARGET_SLOT}.tmp"
+mv -f "${ESP_DIR}/kernel-${TARGET_ARCH}-${TARGET_SLOT}.tmp" \
+  "${ESP_DIR}/kernel-${TARGET_ARCH}-${TARGET_SLOT}"
 sync
 
 TARGET_LOWER=$(printf '%s' "${TARGET_SLOT}" | tr '[:upper:]' '[:lower:]')

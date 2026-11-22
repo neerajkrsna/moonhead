@@ -52,7 +52,12 @@ exit 0
 EOF
 cat > "${TMP}/mockbin/findfs" <<'EOF'
 #!/usr/bin/env bash
-echo "${MOCK_ROOT_DEV}"
+if [[ "${1:-}" == "PARTLABEL=COREOS_STATE" ||
+      "${1:-}" == "PARTLABEL=MOONHEAD_STATE" ]]; then
+  echo "${MOCK_STATE_DEV}"
+else
+  echo "${MOCK_ROOT_DEV}"
+fi
 EOF
 cat > "${TMP}/mockbin/grub-editenv" <<'EOF'
 #!/usr/bin/env bash
@@ -92,6 +97,7 @@ chmod +x "${TMP}"/mockbin/*
 
 export MOCK_GRUB_LOG="${TMP}/grub.log"
 export MOCK_ROOT_DEV="${TMP}/root-b"
+export MOCK_STATE_DEV="${TMP}/state-dev"
 export UPDATE_PUBLIC_KEY="${TMP}/public.pem"
 export MOONHEAD_STATE_DIR="${TMP}/state"
 export MOONHEAD_ESP_DIR="${TMP}/esp"

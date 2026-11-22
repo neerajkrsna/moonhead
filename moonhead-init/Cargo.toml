@@ -33,16 +33,16 @@ assets = [
     ["target/release/netplan", "usr/local/sbin/netplan", "755"],
     ["target/release/moonhead-jail", "usr/local/bin/moonhead-jail", "755"],
     ["target/release/moonhead-xdp", "usr/bin/moonhead-xdp", "755"],
-    ["../build/arm64/ebpf/xdp_fastpath.bpf.o", "usr/lib/moonhead/xdp_fastpath.bpf.o", "644"],
-    ["../build/arm64/ebpf/io_uring_lsm.bpf.o", "usr/lib/moonhead/io_uring_lsm.bpf.o", "644"],
+    ["../build/package-assets/ebpf/xdp_fastpath.bpf.o", "usr/lib/moonhead/xdp_fastpath.bpf.o", "644"],
+    ["../build/package-assets/ebpf/io_uring_lsm.bpf.o", "usr/lib/moonhead/io_uring_lsm.bpf.o", "644"],
     ["../scripts/moonhead-install.sh", "usr/local/sbin/moonhead-install", "755"],
     ["../scripts/moonhead-mark-boot-success.sh", "usr/local/sbin/moonhead-mark-boot-success", "755"],
     ["../scripts/moonhead-update.sh", "usr/local/sbin/moonhead-update", "755"],
     ["services/console.toml", "etc/moonhead/services/console.toml", "644"],
     ["services/boot-success.toml", "etc/moonhead/services/boot-success.toml", "644"],
     ["netplan/01-default.yaml", "etc/netplan/01-default.yaml", "644"],
-    ["../build/arm64/ebpf/io_uring_lsm.bpf.o", "usr/lib/moonhead/io_uring_lsm.bpf.o", "644"],
-    ["../build/arm64/ebpf/scx_moonhead.bpf.o", "usr/lib/moonhead/scx_moonhead.bpf.o", "644"],
+    ["../build/package-assets/ebpf/io_uring_lsm.bpf.o", "usr/lib/moonhead/io_uring_lsm.bpf.o", "644"],
+    ["../build/package-assets/ebpf/scx_moonhead.bpf.o", "usr/lib/moonhead/scx_moonhead.bpf.o", "644"],
 ]
 
 [[bin]]

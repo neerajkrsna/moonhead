@@ -51,14 +51,14 @@ if (( SIZE_BYTES < MIN_SIZE_BYTES )); then
 fi
 
 case "$(uname -m)" in
-  aarch64) EFI_BOOT_NAME="BOOTAA64.EFI" ;;
-  x86_64) EFI_BOOT_NAME="BOOTX64.EFI" ;;
+  aarch64) EFI_BOOT_NAME="BOOTAA64.EFI"; HOST_ARCH=arm64 ;;
+  x86_64) EFI_BOOT_NAME="BOOTX64.EFI"; HOST_ARCH=amd64 ;;
   *) echo "ERROR: unsupported installer architecture $(uname -m)." >&2; exit 1 ;;
 esac
 
 ISO_MNT=""
 for candidate in /mnt/iso /run/initramfs/live /media/cdrom; do
-  if [[ -f "${candidate}/live/rootfs.erofs" ]]; then
+  if [[ -f "${candidate}/live/rootfs-${HOST_ARCH}.erofs" ]]; then
     ISO_MNT="${candidate}"
     break
   fi
@@ -68,7 +68,7 @@ if [[ -z "${ISO_MNT}" ]]; then
   for dev in /dev/sr* /dev/sd* /dev/nvme*p* /dev/vd*; do
     [[ -b "${dev}" ]] || continue
     if mount -t iso9660 -o ro "${dev}" /mnt/moonhead-iso 2>/dev/null; then
-      if [[ -f /mnt/moonhead-iso/live/rootfs.erofs ]]; then
+      if [[ -f /mnt/moonhead-iso/live/rootfs-${HOST_ARCH}.erofs ]]; then
         ISO_MNT=/mnt/moonhead-iso
         break
       fi
@@ -80,7 +80,12 @@ if [[ -z "${ISO_MNT}" ]]; then
   echo "ERROR: could not locate Moonhead OS installer media." >&2
   exit 1
 fi
-for required in rootfs-verity.erofs rootfs.verity verity.env vmlinuz disk-boot.efi; do
+for required in \
+  "rootfs-${HOST_ARCH}-verity.erofs" \
+  "rootfs-${HOST_ARCH}.verity" \
+  verity.env \
+  "vmlinuz-${HOST_ARCH}" \
+  "disk-boot-${HOST_ARCH}.efi"; do
   if [[ ! -f "${ISO_MNT}/live/${required}" ]]; then
     echo "ERROR: installer media is missing /live/${required}." >&2
     exit 1
@@ -105,11 +110,11 @@ part_path() {
   fi
 }
 
-ROOT_BYTES=$(stat -c%s "${ISO_MNT}/live/rootfs-verity.erofs")
+ROOT_BYTES=$(stat -c%s "${ISO_MNT}/live/rootfs-${HOST_ARCH}-verity.erofs")
 ROOT_MIB=$(( (ROOT_BYTES + 1048575) / 1048576 + 16 ))
-HASH_BYTES=$(stat -c%s "${ISO_MNT}/live/rootfs.verity")
+HASH_BYTES=$(stat -c%s "${ISO_MNT}/live/rootfs-${HOST_ARCH}.verity")
 HASH_MIB=$(( (HASH_BYTES + 1048575) / 1048576 + 1 ))
-ESP_MIB=128
+ESP_MIB=256
 STATE_MIB=64
 FIXED_MIB=$((ESP_MIB + (ROOT_MIB + HASH_MIB) * 2 + STATE_MIB + 64))
 if (( SIZE_BYTES / 1048576 <= FIXED_MIB )); then
@@ -171,16 +176,16 @@ mkfs.ext4 -q -F -L MOONHEAD_STATE "${P6}"
 mkfs.ext4 -q -F -L MOONHEAD_DATA "${P7}"
 
 echo "[3/5] Installing dm-verity A/B root images..."
-dd if="${ISO_MNT}/live/rootfs-verity.erofs" of="${P2}" bs=4M conv=fsync status=progress
-dd if="${ISO_MNT}/live/rootfs.verity" of="${P3}" bs=4M conv=fsync status=progress
-dd if="${ISO_MNT}/live/rootfs-verity.erofs" of="${P4}" bs=4M conv=fsync status=progress
-dd if="${ISO_MNT}/live/rootfs.verity" of="${P5}" bs=4M conv=fsync status=progress
+dd if="${ISO_MNT}/live/rootfs-${HOST_ARCH}-verity.erofs" of="${P2}" bs=4M conv=fsync status=progress
+dd if="${ISO_MNT}/live/rootfs-${HOST_ARCH}.verity" of="${P3}" bs=4M conv=fsync status=progress
+dd if="${ISO_MNT}/live/rootfs-${HOST_ARCH}-verity.erofs" of="${P4}" bs=4M conv=fsync status=progress
+dd if="${ISO_MNT}/live/rootfs-${HOST_ARCH}.verity" of="${P5}" bs=4M conv=fsync status=progress
 
 echo "[4/5] Installing bootloader and boot state..."
 mmd -i "${P1}" ::/EFI ::/EFI/BOOT
-mcopy -i "${P1}" "${ISO_MNT}/live/disk-boot.efi" "::/EFI/BOOT/${EFI_BOOT_NAME}"
-mcopy -i "${P1}" "${ISO_MNT}/live/vmlinuz" ::/kernel-A
-mcopy -i "${P1}" "${ISO_MNT}/live/vmlinuz" ::/kernel-B
+mcopy -i "${P1}" "${ISO_MNT}/live/disk-boot-${HOST_ARCH}.efi" "::/EFI/BOOT/${EFI_BOOT_NAME}"
+mcopy -i "${P1}" "${ISO_MNT}/live/vmlinuz-${HOST_ARCH}" "::/kernel-${HOST_ARCH}-A"
+mcopy -i "${P1}" "${ISO_MNT}/live/vmlinuz-${HOST_ARCH}" "::/kernel-${HOST_ARCH}-B"
 if [[ -f "${ISO_MNT}/live/secure-boot-cert.der" ]]; then
   mcopy -i "${P1}" "${ISO_MNT}/live/secure-boot-cert.der" \
     ::/secure-boot-cert.der
@@ -204,5 +209,5 @@ cat <<'EOF'
 
 Moonhead OS was installed with A/B system slots.
 Eject the ISO and reboot. The initial A slot is selected.
-On first console login, the administrator password must be changed.
+Log in as admin with the password set while building the image.
 EOF

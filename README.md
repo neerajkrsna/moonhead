@@ -31,9 +31,8 @@ evaluation; it is not yet a production-certified distribution.
 
 Use an ARM64 Ubuntu host or VM with Rust, Cargo, and `sudo` access.
 
-Prepare an administrator SSH public key and an update-verification public
-key outside the repository. Private keys and build outputs must not be
-committed.
+Prepare an update-verification public key outside the repository. Private
+keys and build outputs must not be committed. An SSH public key is optional.
 
 ```bash
 git clone https://github.com/neerajkrsna/moonhead.git
@@ -41,13 +40,12 @@ cd moonhead
 make deps
 make kernel
 make iso \
-  SSH_PUBKEY_FILE="$HOME/.ssh/id_ed25519.pub" \
   UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem
 ```
 
-The build prompts for the administrator console password. SSH password
-authentication is disabled, so the supplied SSH public key is used for remote
-access.
+The build prompts for the `admin` password. This password is enabled for both
+console and SSH login. To add key-based SSH login as well, pass
+`SSH_PUBKEY_FILE="$HOME/.ssh/id_ed25519.pub"`.
 
 The installer ISO is written to:
 
@@ -55,16 +53,42 @@ The installer ISO is written to:
 build/arm64/moonhead-arm64.iso
 ```
 
+Architecture-specific artifacts carry their architecture in the filename, for
+example `rootfs-arm64.erofs`, `moonhead-arm64.img`, `vmlinuz-arm64`, and
+`io_uring_lsm-arm64.bpf.o`. AMD64 builds use the equivalent `-amd64` names.
+Names that remain unchanged inside the installed OS are architecture-neutral
+runtime paths, such as `/usr/lib/moonhead/io_uring_lsm.bpf.o`.
+
 To build a directly bootable disk image instead:
 
 ```bash
 make image \
-  SSH_PUBKEY_FILE="$HOME/.ssh/id_ed25519.pub" \
   UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem
 ```
 
 Other generated formats are available through `make vmdk` and `make ova`.
 All generated artifacts remain below `build/`; `make clean` removes them.
+
+## Sync source from the Ubuntu VM
+
+To refresh this repository from `/home/risvai/core-os` without copying generated
+artifacts, run:
+
+```bash
+scripts/sync-from-vm.sh --dry-run
+scripts/sync-from-vm.sh
+```
+
+SSH credentials are read from the user's normal SSH configuration. To use a
+specific key:
+
+```bash
+SSH_KEY=~/.ssh/id_ed25519 scripts/sync-from-vm.sh --dry-run
+```
+
+The script supports `VM_HOST`, `VM_USER`, and `VM_PATH` overrides. It syncs
+implementation directories and `Makefile` only; README, docs, licenses, GitHub
+configuration, and repository metadata are preserved.
 
 ## Boot on macOS
 
@@ -78,12 +102,11 @@ qemu-system-aarch64 \
   -device virtio-net-pci,netdev=net0
 ```
 
-Connect with the SSH private key matching the public key supplied at build
-time:
-
 ```bash
-ssh -p 2222 -i ~/.ssh/id_ed25519 admin@localhost
+ssh -p 2222 admin@localhost
 ```
+
+Enter the password provided while building the image.
 
 ## Install from the ISO
 
@@ -104,7 +127,6 @@ embedded during the image build.
 
 ```bash
 make signed-update \
-  SSH_PUBKEY_FILE="$HOME/.ssh/id_ed25519.pub" \
   UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem \
   UPDATE_SIGNING_KEY=/secure/moonhead-update-private.pem \
   UPDATE_VERSION=0.2.0
@@ -116,6 +138,38 @@ Apply the generated `build/arm64/update/` bundle on the appliance:
 sudo moonhead-update /path/to/update
 sudo reboot
 ```
+
+## ARM64 release qualification
+
+Run both qualification paths on ARM64 images built with the same `admin`
+password. The tests require QEMU, ARM64 UEFI firmware, `sshpass`, `sgdisk`, and
+`qemu-img`.
+
+Qualify direct-image boot, persistence, signed update, and rollback:
+
+```bash
+ADMIN_PASSWORD='test-password' make image \
+  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem
+ADMIN_PASSWORD='test-password' make signed-update \
+  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem \
+  UPDATE_SIGNING_KEY=/secure/moonhead-update-private.pem \
+  UPDATE_VERSION=0.1.0-qualify
+ADMIN_PASSWORD='test-password' make qualify-arm64
+```
+
+This test deliberately corrupts the updated B slot and verifies that the next
+successful boot returns to healthy slot A without losing persistent state.
+
+Qualify the installer ISO separately:
+
+```bash
+ADMIN_PASSWORD='test-password' make iso \
+  UPDATE_PUBLIC_KEY_FILE=/secure/moonhead-update-public.pem
+ADMIN_PASSWORD='test-password' make qualify-arm64-iso
+```
+
+The installer test boots the ISO, installs to a blank virtual disk, reboots,
+and verifies password SSH plus healthy A-slot state.
 
 ## Repository layout
 

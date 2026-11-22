@@ -33,11 +33,12 @@ if [[ -z "${DEB_FILE}" || ! -f "${DEB_FILE}" ]]; then
 fi
 DEB_BASENAME=$(basename "${DEB_FILE}")
 
-if [[ -z "${SSH_PUBKEY_FILE:-}" || ! -f "${SSH_PUBKEY_FILE}" ]]; then
-  echo "ERROR: SSH_PUBKEY_FILE must identify an administrator public key." >&2
+if [[ -n "${SSH_PUBKEY_FILE:-}" && ! -f "${SSH_PUBKEY_FILE}" ]]; then
+  echo "ERROR: SSH_PUBKEY_FILE does not exist: ${SSH_PUBKEY_FILE}" >&2
   exit 1
 fi
-if ! grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp[0-9]+|ssh-rsa|sk-ssh-ed25519|sk-ecdsa-sha2-nistp256) ' \
+if [[ -n "${SSH_PUBKEY_FILE:-}" ]] &&
+   ! grep -Eq '^(ssh-ed25519|ecdsa-sha2-nistp[0-9]+|ssh-rsa|sk-ssh-ed25519|sk-ecdsa-sha2-nistp256) ' \
   "${SSH_PUBKEY_FILE}"; then
   echo "ERROR: SSH_PUBKEY_FILE is not a supported OpenSSH public key." >&2
   exit 1
@@ -92,7 +93,7 @@ cgroup = "foreground"
 restart = true
 HOOK' \
   --customize-hook='chroot "$1" ssh-keygen -A' \
-  --customize-hook='printf "PermitRootLogin no\nPubkeyAuthentication yes\nPasswordAuthentication no\nKbdInteractiveAuthentication no\nUseDNS no\n" > "$1/etc/ssh/sshd_config.d/99-moonhead.conf"' \
+  --customize-hook='printf "PermitRootLogin no\nPubkeyAuthentication yes\nPasswordAuthentication yes\nKbdInteractiveAuthentication no\nUseDNS no\n" > "$1/etc/ssh/sshd_config.d/99-moonhead.conf"' \
   --customize-hook='printf "name = \"sshd\"\nexec = \"/bin/sh\"\nargs = [\"-c\", \"mkdir -p /run/sshd && chmod 0755 /run/sshd && exec /usr/sbin/sshd -D\"]\ncgroup = \"foreground\"\nrestart = true\n" > "$1/etc/moonhead/services/sshd.toml"' \
   --customize-hook='printf "name = \"chronyd\"\nexec = \"/usr/sbin/chronyd\"\nargs = [\"-d\"]\ncgroup = \"batch\"\nrestart = true\n" > "$1/etc/moonhead/services/chronyd.toml"' \
   --customize-hook='cat << "HOOK" > "$1/etc/nftables.conf"
@@ -157,6 +158,8 @@ if chroot "${ROOTFS_DIR}" dpkg-query -W -f='${Package}\n' | grep -qE '^(systemd|
 fi
 
 echo "[3/3] Packing immutable erofs rootfs image..."
-mkfs.erofs -zlz4hc "${BUILD_DIR}/rootfs.erofs" "${ROOTFS_DIR}"
-chmod 0644 "${BUILD_DIR}/rootfs.erofs"
-echo "Built ${BUILD_DIR}/rootfs.erofs ($(du -h "${BUILD_DIR}/rootfs.erofs" | cut -f1))"
+ROOTFS_IMAGE="${BUILD_DIR}/rootfs-${ARCH}.erofs"
+rm -f "${BUILD_DIR}/rootfs.erofs"
+mkfs.erofs -zlz4hc "${ROOTFS_IMAGE}" "${ROOTFS_DIR}"
+chmod 0644 "${ROOTFS_IMAGE}"
+echo "Built ${ROOTFS_IMAGE} ($(du -h "${ROOTFS_IMAGE}" | cut -f1))"

@@ -31,3 +31,8 @@ jobs:
 
       - name: Test signed A/B update flow
         run: tests/test-update-flow.sh
+
+      - name: Validate ARM64 qualification commands
+        run: |
+          tests/qualify-arm64-image.sh >/dev/null 2>&1 && exit 1 || test $? -eq 2
+          tests/qualify-arm64-iso.sh >/dev/null 2>&1 && exit 1 || test $? -eq 2
